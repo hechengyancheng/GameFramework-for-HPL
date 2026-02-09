@@ -1,0 +1,257 @@
+# 交互系统 - 处理用户输入、菜单显示、对话系统
+
+classes:
+  InputHandler:
+    # 获取整数输入，带验证
+    get_int: (prompt, min_val, max_val) => {
+        while (true) :
+          try :
+            if (prompt != null) {
+              echo prompt
+            }
+            input_str = input()
+            value = int(input_str)
+            if (min_val != null && value < min_val) {
+              echo "请输入大于等于 " + str(min_val) + " 的数字"
+              continue
+            }
+            if (max_val != null && value > max_val) {
+              echo "请输入小于等于 " + str(max_val) + " 的数字"
+              continue
+            }
+            return value
+          catch (error) :
+            echo "无效输入，请输入一个有效的数字"
+      }
+    
+    # 获取字符串输入
+    get_string: (prompt, allow_empty) => {
+        if (allow_empty == null) {
+          allow_empty = false
+        }
+        while (true) :
+          if (prompt != null) {
+            echo prompt
+          }
+          value = input()
+          if (!allow_empty && len(value) == 0) {
+            echo "输入不能为空，请重新输入"
+            continue
+          }
+          return value
+      }
+    
+    # 获取确认 (Y/N)
+    get_confirm: (prompt) => {
+        if (prompt == null) {
+          prompt = "确认? (Y/N): "
+        }
+        while (true) :
+          echo prompt
+          value = input()
+          value_upper = value
+          # 转换为大写进行比较
+          if (value_upper == "Y" || value_upper == "y") {
+            return true
+          }
+          if (value_upper == "N" || value_upper == "n") {
+            return false
+          }
+          echo "请输入 Y 或 N"
+      }
+    
+    # 获取选择项
+    get_choice: (prompt, options) => {
+        echo prompt
+        for (i = 0; i < len(options); i++) :
+          echo "  " + str(i + 1) + ". " + options[i]
+        while (true) :
+          echo "请输入选项编号 (1-" + str(len(options)) + "): "
+          input_str = input()
+          try :
+            choice = int(input_str)
+            if (choice >= 1 && choice <= len(options)) {
+              return choice - 1  # 返回0-based索引
+            }
+            echo "无效选项，请重新输入"
+          catch (error) :
+            echo "请输入有效的数字"
+      }
+    
+    # 暂停等待用户按键
+    pause: (message) => {
+        if (message == null) {
+          message = "按回车键继续..."
+        }
+        echo message
+        input()
+      }
+
+  MenuSystem:
+    # 显示菜单并获取选择
+    show_menu: (title, options) => {
+        echo ""
+        echo "========== " + title + " =========="
+        for (i = 0; i < len(options); i++) :
+          echo "  [" + str(i + 1) + "] " + options[i]
+        echo "  [0] 返回/退出"
+        echo "=================================="
+        
+        while (true) :
+          echo "请选择: "
+          input_str = input()
+          try :
+            choice = int(input_str)
+            if (choice >= 0 && choice <= len(options)) {
+              return choice
+            }
+            echo "无效选项，请重新输入"
+          catch (error) :
+            echo "请输入有效的数字"
+      }
+    
+    # 显示子菜单
+    show_submenu: (parent_title, submenu_title, options) => {
+        full_title = parent_title + " > " + submenu_title
+        return this.show_menu(full_title, options)
+      }
+    
+    # 显示分页列表
+    show_paged_list: (title, items, page_size) => {
+        if (page_size == null) {
+          page_size = 10
+        }
+        total_pages = (len(items) + page_size - 1) / page_size
+        if (total_pages < 1) {
+          total_pages = 1
+        }
+        current_page = 0
+        
+        while (true) :
+          start = current_page * page_size
+          end = start + page_size
+          if (end > len(items)) {
+            end = len(items)
+          }
+          
+          echo ""
+          echo "========== " + title + " (第 " + str(current_page + 1) + "/" + str(total_pages) + " 页) =========="
+          for (i = start; i < end; i++) :
+            echo "  [" + str(i + 1) + "] " + items[i]
+          
+          echo ""
+          echo "  [N] 下一页  [P] 上一页  [Q] 退出"
+          echo "  或直接输入编号选择"
+          echo "=================================================="
+          
+          echo "请选择: "
+          choice = input()
+          
+          # 处理导航命令
+          if (choice == "N" || choice == "n") {
+            if (current_page < total_pages - 1) {
+              current_page = current_page + 1
+            }
+            continue
+          }
+          if (choice == "P" || choice == "p") {
+            if (current_page > 0) {
+              current_page = current_page - 1
+            }
+            continue
+          }
+          if (choice == "Q" || choice == "q") {
+            return -1
+          }
+          
+          # 尝试解析为数字选择
+          try :
+            num_choice = int(choice)
+            if (num_choice >= 1 && num_choice <= len(items)) {
+              return num_choice - 1
+            }
+            echo "无效选项"
+          catch (error) :
+            echo "无效输入"
+      }
+
+  DialogSystem:
+    # 显示对话
+    show_dialog: (speaker, text) => {
+        echo ""
+        if (speaker != null && len(speaker) > 0) {
+          echo "[" + speaker + "]"
+        }
+        echo "\"" + text + "\""
+        echo ""
+      }
+    
+    # 显示带选项的对话
+    show_dialog_with_choices: (speaker, text, choices) => {
+        this.show_dialog(speaker, text)
+        echo "你的回应:"
+        for (i = 0; i < len(choices); i++) :
+          echo "  " + str(i + 1) + ". " + choices[i]
+        return input_handler.get_choice("", choices)
+      }
+    
+    # 显示叙述文本
+    show_narration: (text) => {
+        echo ""
+        echo text
+        echo ""
+      }
+    
+    # 显示场景描述
+    show_scene: (location, description) => {
+        echo ""
+        echo "【" + location + "】"
+        echo "----------------------------------------"
+        echo description
+        echo "----------------------------------------"
+        echo ""
+      }
+    
+    # 显示系统消息
+    show_system: (message) => {
+        echo "[系统] " + message
+      }
+    
+    # 显示战斗信息
+    show_combat: (attacker, action, target, result) => {
+        echo ""
+        echo "⚔️  " + attacker + " " + action + " " + target
+        if (result != null) {
+          echo "   结果: " + result
+        }
+        echo ""
+      }
+    
+    # 显示获得物品
+    show_loot: (item_name, quantity) => {
+        if (quantity == null) {
+          quantity = 1
+        }
+        echo ""
+        echo "🎁 获得: " + item_name + " x" + str(quantity)
+        echo ""
+      }
+    
+    # 显示属性变化
+    show_stat_change: (stat_name, old_val, new_val) => {
+        diff = new_val - old_val
+        if (diff > 0) {
+          echo "📈 " + stat_name + ": " + str(old_val) + " → " + str(new_val) + " (+" + str(diff) + ")"
+        } else {
+          if (diff < 0) {
+            echo "📉 " + stat_name + ": " + str(old_val) + " → " + str(new_val) + " (" + str(diff) + ")"
+          } else {
+            echo "📊 " + stat_name + ": " + str(new_val)
+          }
+        }
+      }
+
+objects:
+  input_handler: InputHandler()
+  menu_system: MenuSystem()
+  dialog_system: DialogSystem()

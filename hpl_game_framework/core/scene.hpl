@@ -1,0 +1,249 @@
+# 场景系统 - 管理游戏场景、选择项、条件判断
+
+classes:
+  Choice:
+    # 选择项类
+    init: (text, target_scene, condition, action) => {
+        this.text = text              # 显示文本
+        this.target_scene = target_scene  # 目标场景ID
+        this.condition = condition    # 条件表达式（可选）
+        this.action = action          # 执行的动作（可选）
+        this.visible = true           # 是否可见
+        this.enabled = true           # 是否可用
+      }
+    
+    # 检查条件
+    check_condition: (player, game_state) => {
+        if (this.condition == null) {
+          return true
+        }
+        # 简化条件检查，实际游戏中可以扩展
+        return true
+      }
+    
+    # 执行动作
+    execute_action: (player, game_state) => {
+        if (this.action == null) {
+          return
+        }
+        # 执行动作
+      }
+    
+    # 获取显示文本
+    get_display_text: () => {
+        if (!this.enabled) {
+          return "[不可用] " + this.text
+        }
+        return this.text
+      }
+
+  Scene:
+    # 场景类
+    init: (id, name, description) => {
+        this.id = id                  # 场景唯一标识
+        this.name = name              # 场景名称
+        this.description = description  # 场景描述
+        this.choices = []             # 选择项列表
+        this.on_enter = null          # 进入场景时执行的动作
+        this.on_exit = null           # 离开场景时执行的动作
+        this.visited = false          # 是否访问过
+        this.items = []               # 场景中的物品
+        this.npcs = []                # 场景中的NPC
+        this.exits = {}               # 出口 {方向: 场景ID}
+      }
+    
+    # 添加选择项
+    add_choice: (choice) => {
+        this.choices = this.choices + [choice]
+      }
+    
+    # 创建并添加选择项
+    create_choice: (text, target, condition, action) => {
+        choice = Choice(text, target, condition, action)
+        this.add_choice(choice)
+        return choice
+      }
+    
+    # 添加简单选择（无条件）
+    add_simple_choice: (text, target_scene) => {
+        choice = Choice(text, target_scene, null, null)
+        this.add_choice(choice)
+        return choice
+      }
+    
+    # 添加物品到场景
+    add_item: (item) => {
+        this.items = this.items + [item]
+      }
+    
+    # 移除场景中的物品
+    remove_item: (index) => {
+        if (index < 0 || index >= len(this.items)) {
+          return null
+        }
+        item = this.items[index]
+        new_items = []
+        for (i = 0; i < len(this.items); i++) :
+          if (i != index) {
+            new_items = new_items + [this.items[i]]
+          }
+        this.items = new_items
+        return item
+      }
+    
+    # 添加NPC
+    add_npc: (npc) => {
+        this.npcs = this.npcs + [npc]
+      }
+    
+    # 添加出口
+    add_exit: (direction, scene_id) => {
+        this.exits[direction] = scene_id
+      }
+    
+    # 获取可用选择
+    get_available_choices: (player, game_state) => {
+        available = []
+        for (i = 0; i < len(this.choices); i++) :
+          choice = this.choices[i]
+          if (choice.visible && choice.check_condition(player, game_state)) {
+            available = available + [choice]
+          }
+        return available
+      }
+    
+    # 显示场景
+    display: (player, game_state) => {
+        # 显示场景名称和描述
+        dialog_system.show_scene(this.name, this.description)
+        
+        # 显示场景中的物品
+        if (len(this.items) > 0) {
+          echo "这里的物品:"
+          for (i = 0; i < len(this.items); i++) :
+            echo "  - " + this.items[i].name
+        }
+        
+        # 显示NPC
+        if (len(this.npcs) > 0) {
+          echo "这里的人:"
+          for (i = 0; i < len(this.npcs); i++) :
+            echo "  - " + this.npcs[i].name
+        }
+        
+        # 显示出口
+        if (len(this.exits) > 0) {
+          echo "出口:"
+          directions = []
+          # 手动获取所有方向
+          if ("north" in this.exits) {
+            directions = directions + ["北"]
+          }
+          if ("south" in this.exits) {
+            directions = directions + ["南"]
+          }
+          if ("east" in this.exits) {
+            directions = directions + ["东"]
+          }
+          if ("west" in this.exits) {
+            directions = directions + ["西"]
+          }
+          if ("up" in this.exits) {
+            directions = directions + ["上"]
+          }
+          if ("down" in this.exits) {
+            directions = directions + ["下"]
+          }
+          echo "  " + directions
+        }
+        
+        # 显示选择项
+        available = this.get_available_choices(player, game_state)
+        if (len(available) > 0) {
+          echo ""
+          echo "你可以:"
+          for (i = 0; i < len(available); i++) :
+            choice = available[i]
+            echo "  [" + str(i + 1) + "] " + choice.get_display_text()
+        }
+        
+        return available
+      }
+    
+    # 执行选择
+    make_choice: (choice_index, player, game_state) => {
+        available = this.get_available_choices(player, game_state)
+        if (choice_index < 0 || choice_index >= len(available)) {
+          return null
+        }
+        choice = available[choice_index]
+        
+        # 执行动作
+        choice.execute_action(player, game_state)
+        
+        return choice.target_scene
+      }
+    
+    # 进入场景
+    enter: (player, game_state) => {
+        this.visited = true
+        player.location = this.id
+        
+        if (this.on_enter != null) {
+          this.on_enter(player, game_state)
+        }
+      }
+    
+    # 离开场景
+    exit: (player, game_state) => {
+        if (this.on_exit != null) {
+          this.on_exit(player, game_state)
+        }
+      }
+
+  NPC:
+    # NPC类
+    init: (id, name, description) => {
+        this.id = id
+        this.name = name
+        this.description = description
+        this.dialogues = []           # 对话列表
+        this.shop_items = []          # 商店物品（如果是商人）
+        this.is_merchant = false      # 是否是商人
+        this.quests = []              # 提供的任务
+        this.friendly = true          # 是否友好
+      }
+    
+    # 添加对话
+    add_dialogue: (text, responses) => {
+        dialogue = {
+          "text": text,
+          "responses": responses
+        }
+        this.dialogues = this.dialogues + [dialogue]
+      }
+    
+    # 获取问候语
+    get_greeting: () => {
+        if (len(this.dialogues) > 0) {
+          return this.dialogues[0].text
+        }
+        return "你好，" + this.name + "向你打招呼。"
+      }
+    
+    # 交互
+    interact: (player, game_state) => {
+        dialog_system.show_dialog(this.name, this.get_greeting())
+        
+        if (this.is_merchant) {
+          # 显示商店选项
+          echo "1. 购买物品"
+          echo "2. 出售物品"
+          echo "3. 离开"
+          return
+        }
+        
+        if (len(this.quests) > 0) {
+          echo "4. 询问任务"
+        }
+      }

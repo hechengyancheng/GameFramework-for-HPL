@@ -1,0 +1,398 @@
+# 玩家角色系统 - 管理玩家属性、背包、状态
+
+classes:
+  Item:
+    # 物品类
+    init: (id, name, description, item_type, value) => {
+        this.id = id
+        this.name = name
+        this.description = description
+        this.type = item_type  # weapon, armor, consumable, key, misc
+        this.value = value
+        this.quantity = 1
+        this.equipped = false
+        this.stats = {}  # 额外属性如攻击力、防御力等
+      }
+    
+    # 设置物品属性
+    set_stat: (key, value) => {
+        this.stats[key] = value
+      }
+    
+    # 获取物品属性
+    get_stat: (key, default_val) => {
+        if (key in this.stats) {
+          return this.stats[key]
+        }
+        return default_val
+      }
+    
+    # 显示物品信息
+    get_info: () => {
+        info = this.name
+        if (this.quantity > 1) {
+          info = info + " x" + str(this.quantity)
+        }
+        if (this.equipped) {
+          info = info + " [已装备]"
+        }
+        return info
+      }
+
+  Inventory:
+    # 背包系统
+    init: (capacity) => {
+        if (capacity == null) {
+          capacity = 20
+        }
+        this.capacity = capacity
+        this.items = []
+        this.gold = 0
+      }
+    
+    # 添加物品
+    add_item: (item) => {
+        # 检查是否可堆叠
+        if (item.type == "consumable" || item.type == "misc") {
+          for (i = 0; i < len(this.items); i++) :
+            existing = this.items[i]
+            if (existing.id == item.id) {
+              existing.quantity = existing.quantity + item.quantity
+              return true
+            }
+        }
+        
+        # 检查容量
+        if (len(this.items) >= this.capacity) {
+          return false
+        }
+        
+        this.items = this.items + [item]
+        return true
+      }
+    
+    # 移除物品
+    remove_item: (index, quantity) => {
+        if (quantity == null) {
+          quantity = 1
+        }
+        if (index < 0 || index >= len(this.items)) {
+          return null
+        }
+        item = this.items[index]
+        if (item.quantity <= quantity) {
+          # 移除整个物品
+          new_items = []
+          for (i = 0; i < len(this.items); i++) :
+            if (i != index) {
+              new_items = new_items + [this.items[i]]
+            }
+          this.items = new_items
+          return item
+        } else {
+          # 减少数量
+          item.quantity = item.quantity - quantity
+          # 创建副本返回
+          copy = Item(item.id, item.name, item.description, item.type, item.value)
+          copy.quantity = quantity
+          return copy
+        }
+      }
+    
+    # 获取物品
+    get_item: (index) => {
+        if (index < 0 || index >= len(this.items)) {
+          return null
+        }
+        return this.items[index]
+      }
+    
+    # 查找物品
+    find_item: (item_id) => {
+        for (i = 0; i < len(this.items); i++) :
+          if (this.items[i].id == item_id) {
+            return i
+          }
+        return -1
+      }
+    
+    # 检查是否有物品
+    has_item: (item_id) => {
+        return this.find_item(item_id) >= 0
+      }
+    
+    # 获取物品列表
+    get_item_list: () => {
+        list = []
+        for (i = 0; i < len(this.items); i++) :
+          item = this.items[i]
+          list = list + [str(i + 1) + ". " + item.get_info()]
+        return list
+      }
+    
+    # 获取已装备武器
+    get_equipped_weapon: () => {
+        for (i = 0; i < len(this.items); i++) :
+          item = this.items[i]
+          if (item.type == "weapon" && item.equipped) {
+            return item
+          }
+        return null
+      }
+    
+    # 获取已装备防具
+    get_equipped_armor: () => {
+        for (i = 0; i < len(this.items); i++) :
+          item = this.items[i]
+          if (item.type == "armor" && item.equipped) {
+            return item
+          }
+        return null
+      }
+    
+    # 装备物品
+    equip_item: (index) => {
+        if (index < 0 || index >= len(this.items)) {
+          return false
+        }
+        item = this.items[index]
+        
+        # 取消同类型其他装备的装备状态
+        if (item.type == "weapon" || item.type == "armor") {
+          for (i = 0; i < len(this.items); i++) :
+            other = this.items[i]
+            if (other.type == item.type) {
+              other.equipped = false
+            }
+        }
+        
+        item.equipped = true
+        return true
+      }
+    
+    # 卸下装备
+    unequip_item: (index) => {
+        if (index < 0 || index >= len(this.items)) {
+          return false
+        }
+        this.items[index].equipped = false
+        return true
+      }
+    
+    # 添加金币
+    add_gold: (amount) => {
+        this.gold = this.gold + amount
+        return this.gold
+      }
+    
+    # 消费金币
+    spend_gold: (amount) => {
+        if (this.gold < amount) {
+          return false
+        }
+        this.gold = this.gold - amount
+        return true
+      }
+
+  Player:
+    # 玩家角色
+    init: (name) => {
+        this.name = name
+        this.level = 1
+        this.exp = 0
+        this.exp_to_next = 100
+        
+        # 基础属性
+        this.max_hp = 100
+        this.hp = 100
+        this.max_mp = 50
+        this.mp = 50
+        
+        # 战斗属性
+        this.strength = 10  # 力量，影响物理攻击
+        this.agility = 10   # 敏捷，影响速度和闪避
+        this.intelligence = 10  # 智力，影响魔法攻击和MP
+        this.vitality = 10  # 体质，影响HP和防御
+        
+        # 状态
+        this.status = "normal"  # normal, poisoned, paralyzed, etc.
+        this.location = "start"
+        
+        # 背包
+        this.inventory = Inventory(20)
+        
+        # 任务记录
+        this.quests = []
+        this.completed_quests = []
+        
+        # 游戏统计
+        this.stats = {
+          "monsters_killed": 0,
+          "deaths": 0,
+          "items_found": 0,
+          "gold_earned": 0,
+          "play_time": 0
+        }
+      }
+    
+    # 计算属性值（包含装备加成）
+    get_attack: () => {
+        base = this.strength
+        weapon = this.inventory.get_equipped_weapon()
+        if (weapon != null) {
+          bonus = weapon.get_stat("attack", 0)
+          base = base + bonus
+        }
+        return base
+      }
+    
+    get_defense: () => {
+        base = this.vitality / 2
+        armor = this.inventory.get_equipped_armor()
+        if (armor != null) {
+          bonus = armor.get_stat("defense", 0)
+          base = base + bonus
+        }
+        return int(base)
+      }
+    
+    get_speed: () => {
+        return this.agility
+      }
+    
+    # 生命值管理
+    heal: (amount) => {
+        this.hp = this.hp + amount
+        if (this.hp > this.max_hp) {
+          this.hp = this.max_hp
+        }
+        return this.hp
+      }
+    
+    take_damage: (amount) => {
+        this.hp = this.hp - amount
+        if (this.hp < 0) {
+          this.hp = 0
+        }
+        return this.hp
+      }
+    
+    is_alive: () => {
+        return this.hp > 0
+      }
+    
+    # 魔法值管理
+    use_mp: (amount) => {
+        if (this.mp < amount) {
+          return false
+        }
+        this.mp = this.mp - amount
+        return true
+      }
+    
+    restore_mp: (amount) => {
+        this.mp = this.mp + amount
+        if (this.mp > this.max_mp) {
+          this.mp = this.max_mp
+        }
+        return this.mp
+      }
+    
+    # 经验值和升级
+    gain_exp: (amount) => {
+        this.exp = this.exp + amount
+        if (this.exp >= this.exp_to_next) {
+          this.level_up()
+        }
+      }
+    
+    level_up: () => {
+        this.level = this.level + 1
+        this.exp = this.exp - this.exp_to_next
+        this.exp_to_next = int(this.exp_to_next * 1.5)
+        
+        # 属性成长
+        hp_growth = 10 + this.vitality / 5
+        mp_growth = 5 + this.intelligence / 5
+        
+        this.max_hp = this.max_hp + hp_growth
+        this.max_mp = this.max_mp + mp_growth
+        this.hp = this.max_hp
+        this.mp = this.max_mp
+        
+        echo "🎉 升级了！等级提升到 " + str(this.level)
+        echo "   最大HP: +" + str(hp_growth) + "  最大MP: +" + str(mp_growth)
+      }
+    
+    # 显示状态
+    show_status: () => {
+        echo ""
+        echo "========== 角色状态 =========="
+        echo "姓名: " + this.name
+        echo "等级: " + str(this.level) + "  (经验: " + str(this.exp) + "/" + str(this.exp_to_next) + ")"
+        echo ""
+        echo "生命值: " + str(this.hp) + "/" + str(this.max_hp)
+        echo "魔法值: " + str(this.mp) + "/" + str(this.max_mp)
+        echo ""
+        echo "力量: " + str(this.strength) + "  敏捷: " + str(this.agility)
+        echo "智力: " + str(this.intelligence) + "  体质: " + str(this.vitality)
+        echo ""
+        echo "攻击力: " + str(this.get_attack()) + "  防御力: " + str(this.get_defense())
+        echo "速度: " + str(this.get_speed())
+        echo ""
+        echo "金币: " + str(this.inventory.gold)
+        echo "状态: " + this.status
+        echo "============================"
+      }
+    
+    # 显示背包
+    show_inventory: () => {
+        echo ""
+        echo "========== 背包 =========="
+        echo "金币: " + str(this.inventory.gold)
+        echo "容量: " + str(len(this.inventory.items)) + "/" + str(this.inventory.capacity)
+        echo ""
+        items = this.inventory.get_item_list()
+        if (len(items) == 0) {
+          echo "背包是空的"
+        } else {
+          for (i = 0; i < len(items); i++) :
+            echo items[i]
+        }
+        echo "=========================="
+      }
+    
+    # 添加任务
+    add_quest: (quest_id, quest_name, description) => {
+        quest = {
+          "id": quest_id,
+          "name": quest_name,
+          "description": description,
+          "completed": false,
+          "objectives": []
+        }
+        this.quests = this.quests + [quest]
+        echo "📜 接受任务: " + quest_name
+      }
+    
+    # 完成任务
+    complete_quest: (quest_id) => {
+        for (i = 0; i < len(this.quests); i++) :
+          if (this.quests[i].id == quest_id) {
+            this.quests[i].completed = true
+            this.completed_quests = this.completed_quests + [this.quests[i]]
+            echo "✅ 完成任务: " + this.quests[i].name
+            return true
+          }
+        return false
+      }
+    
+    # 获取进行中的任务
+    get_active_quests: () => {
+        active = []
+        for (i = 0; i < len(this.quests); i++) :
+          if (!this.quests[i].completed) {
+            active = active + [this.quests[i]]
+          }
+        return active
+      }
