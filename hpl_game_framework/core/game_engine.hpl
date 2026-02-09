@@ -334,9 +334,9 @@ classes:
               if (target_scene != null) :
                 this.game_state.change_scene(target_scene)
             else :
-              echo "无效选项")
+              echo "无效选项"
           catch (error) :
-            echo "请输入有效的数字或命令")
+            echo "请输入有效的数字或命令"
           
           input_handler.pause()
       
