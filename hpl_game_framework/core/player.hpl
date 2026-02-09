@@ -21,30 +21,26 @@ classes:
     
     # 获取物品属性
     get_stat: (key, default_val) => {
-        if (key in this.stats) {
+        if (key in this.stats) :
           return this.stats[key]
-        }
         return default_val
       }
     
     # 显示物品信息
     get_info: () => {
         info = this.name
-        if (this.quantity > 1) {
+        if (this.quantity > 1) :
           info = info + " x" + str(this.quantity)
-        }
-        if (this.equipped) {
+        if (this.equipped) :
           info = info + " [已装备]"
-        }
         return info
       }
 
   Inventory:
     # 背包系统
     init: (capacity) => {
-        if (capacity == null) {
+        if (capacity == null) :
           capacity = 20
-        }
         this.capacity = capacity
         this.items = []
         this.gold = 0
@@ -53,19 +49,16 @@ classes:
     # 添加物品
     add_item: (item) => {
         # 检查是否可堆叠
-        if (item.type == "consumable" || item.type == "misc") {
+        if (item.type == "consumable" || item.type == "misc") :
           for (i = 0; i < len(this.items); i++) :
             existing = this.items[i]
-            if (existing.id == item.id) {
+            if (existing.id == item.id) :
               existing.quantity = existing.quantity + item.quantity
               return true
-            }
-        }
         
         # 检查容量
-        if (len(this.items) >= this.capacity) {
+        if (len(this.items) >= this.capacity) :
           return false
-        }
         
         this.items = this.items + [item]
         return true
@@ -73,46 +66,40 @@ classes:
     
     # 移除物品
     remove_item: (index, quantity) => {
-        if (quantity == null) {
+        if (quantity == null) :
           quantity = 1
-        }
-        if (index < 0 || index >= len(this.items)) {
+        if (index < 0 || index >= len(this.items)) :
           return null
-        }
         item = this.items[index]
-        if (item.quantity <= quantity) {
+        if (item.quantity <= quantity) :
           # 移除整个物品
           new_items = []
           for (i = 0; i < len(this.items); i++) :
-            if (i != index) {
+            if (i != index) :
               new_items = new_items + [this.items[i]]
-            }
           this.items = new_items
           return item
-        } else {
+        else :
           # 减少数量
           item.quantity = item.quantity - quantity
           # 创建副本返回
           copy = Item(item.id, item.name, item.description, item.type, item.value)
           copy.quantity = quantity
           return copy
-        }
       }
     
     # 获取物品
     get_item: (index) => {
-        if (index < 0 || index >= len(this.items)) {
+        if (index < 0 || index >= len(this.items)) :
           return null
-        }
         return this.items[index]
       }
     
     # 查找物品
     find_item: (item_id) => {
         for (i = 0; i < len(this.items); i++) :
-          if (this.items[i].id == item_id) {
+          if (this.items[i].id == item_id) :
             return i
-          }
         return -1
       }
     
@@ -134,9 +121,8 @@ classes:
     get_equipped_weapon: () => {
         for (i = 0; i < len(this.items); i++) :
           item = this.items[i]
-          if (item.type == "weapon" && item.equipped) {
+          if (item.type == "weapon" && item.equipped) :
             return item
-          }
         return null
       }
     
@@ -144,27 +130,23 @@ classes:
     get_equipped_armor: () => {
         for (i = 0; i < len(this.items); i++) :
           item = this.items[i]
-          if (item.type == "armor" && item.equipped) {
+          if (item.type == "armor" && item.equipped) :
             return item
-          }
         return null
       }
     
     # 装备物品
     equip_item: (index) => {
-        if (index < 0 || index >= len(this.items)) {
+        if (index < 0 || index >= len(this.items)) :
           return false
-        }
         item = this.items[index]
         
         # 取消同类型其他装备的装备状态
-        if (item.type == "weapon" || item.type == "armor") {
+        if (item.type == "weapon" || item.type == "armor") :
           for (i = 0; i < len(this.items); i++) :
             other = this.items[i]
-            if (other.type == item.type) {
+            if (other.type == item.type) :
               other.equipped = false
-            }
-        }
         
         item.equipped = true
         return true
@@ -172,9 +154,8 @@ classes:
     
     # 卸下装备
     unequip_item: (index) => {
-        if (index < 0 || index >= len(this.items)) {
+        if (index < 0 || index >= len(this.items)) :
           return false
-        }
         this.items[index].equipped = false
         return true
       }
@@ -187,9 +168,8 @@ classes:
     
     # 消费金币
     spend_gold: (amount) => {
-        if (this.gold < amount) {
+        if (this.gold < amount) :
           return false
-        }
         this.gold = this.gold - amount
         return true
       }
@@ -239,20 +219,18 @@ classes:
     get_attack: () => {
         base = this.strength
         weapon = this.inventory.get_equipped_weapon()
-        if (weapon != null) {
+        if (weapon != null) :
           bonus = weapon.get_stat("attack", 0)
           base = base + bonus
-        }
         return base
       }
     
     get_defense: () => {
         base = this.vitality / 2
         armor = this.inventory.get_equipped_armor()
-        if (armor != null) {
+        if (armor != null) :
           bonus = armor.get_stat("defense", 0)
           base = base + bonus
-        }
         return int(base)
       }
     
@@ -263,17 +241,15 @@ classes:
     # 生命值管理
     heal: (amount) => {
         this.hp = this.hp + amount
-        if (this.hp > this.max_hp) {
+        if (this.hp > this.max_hp) :
           this.hp = this.max_hp
-        }
         return this.hp
       }
     
     take_damage: (amount) => {
         this.hp = this.hp - amount
-        if (this.hp < 0) {
+        if (this.hp < 0) :
           this.hp = 0
-        }
         return this.hp
       }
     
@@ -283,27 +259,24 @@ classes:
     
     # 魔法值管理
     use_mp: (amount) => {
-        if (this.mp < amount) {
+        if (this.mp < amount) :
           return false
-        }
         this.mp = this.mp - amount
         return true
       }
     
     restore_mp: (amount) => {
         this.mp = this.mp + amount
-        if (this.mp > this.max_mp) {
+        if (this.mp > this.max_mp) :
           this.mp = this.max_mp
-        }
         return this.mp
       }
     
     # 经验值和升级
     gain_exp: (amount) => {
         this.exp = this.exp + amount
-        if (this.exp >= this.exp_to_next) {
+        if (this.exp >= this.exp_to_next) :
           this.level_up()
-        }
       }
     
     level_up: () => {
@@ -353,12 +326,11 @@ classes:
         echo "容量: " + str(len(this.inventory.items)) + "/" + str(this.inventory.capacity)
         echo ""
         items = this.inventory.get_item_list()
-        if (len(items) == 0) {
+        if (len(items) == 0) :
           echo "背包是空的"
-        } else {
+        else :
           for (i = 0; i < len(items); i++) :
             echo items[i]
-        }
         echo "=========================="
       }
     
@@ -378,12 +350,11 @@ classes:
     # 完成任务
     complete_quest: (quest_id) => {
         for (i = 0; i < len(this.quests); i++) :
-          if (this.quests[i].id == quest_id) {
+          if (this.quests[i].id == quest_id) :
             this.quests[i].completed = true
             this.completed_quests = this.completed_quests + [this.quests[i]]
             echo "✅ 完成任务: " + this.quests[i].name
             return true
-          }
         return false
       }
     
@@ -391,8 +362,7 @@ classes:
     get_active_quests: () => {
         active = []
         for (i = 0; i < len(this.quests); i++) :
-          if (!this.quests[i].completed) {
+          if (!this.quests[i].completed) :
             active = active + [this.quests[i]]
-          }
         return active
       }

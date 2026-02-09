@@ -4,9 +4,8 @@ classes:
   RandomGenerator:
     # 初始化随机数生成器
     init: (seed) => {
-        if (seed == null) {
+        if (seed == null) :
           seed = time.now_ms()
-        }
         this.seed = seed
         this.a = 1103515245
         this.c = 12345
@@ -27,9 +26,8 @@ classes:
     
     # 从数组中随机选择
     random_choice: (arr) => {
-        if (len(arr) == 0) {
+        if (len(arr) == 0) :
           return null
-        }
         index = this.random_int(len(arr))
         return arr[index]
       }
@@ -52,12 +50,10 @@ classes:
     
     # 打印分隔线
     print_line: (char, length) => {
-        if (char == null) {
+        if (char == null) :
           char = "-"
-        }
-        if (length == null) {
+        if (length == null) :
           length = 50
-        }
         line = ""
         for (i = 0; i < length; i++) :
           line = line + char
@@ -97,9 +93,8 @@ classes:
     
     # 打印进度条
     print_progress: (current, max, label) => {
-        if (label == null) {
+        if (label == null) :
           label = "Progress"
-        }
         percentage = int((current * 100) / max)
         bar_length = 20
         filled = int((current * bar_length) / max)
@@ -133,28 +128,24 @@ classes:
     attack_roll: (attack_bonus, armor_class) => {
         roll = this.random_range(1, 20)
         total = roll + attack_bonus
-        if (roll == 20) {
+        if (roll == 20) :
           echo "Critical Hit! (Natural 20)"
           return "critical"
-        }
-        if (roll == 1) {
+        if (roll == 1) :
           echo "Critical Miss! (Natural 1)"
           return "miss"
-        }
-        if (total >= armor_class) {
+        if (total >= armor_class) :
           echo "Hit! Roll: " + str(roll) + " + " + str(attack_bonus) + " >= AC " + str(armor_class)
           return "hit"
-        } else {
+        else :
           echo "Miss! Roll: " + str(roll) + " + " + str(attack_bonus) + " < AC " + str(armor_class)
           return "miss"
-        }
       }
     
     # 伤害骰
     damage_roll: (dice_count, dice_sides, bonus) => {
-        if (bonus == null) {
+        if (bonus == null) :
           bonus = 0
-        }
         total = 0
         rolls = []
         for (i = 0; i < dice_count; i++) :
