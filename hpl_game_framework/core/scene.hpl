@@ -14,26 +14,23 @@ classes:
     
     # 检查条件
     check_condition: (player, game_state) => {
-        if (this.condition == null) {
+        if (this.condition == null) :
           return true
-        }
         # 简化条件检查，实际游戏中可以扩展
         return true
       }
     
     # 执行动作
     execute_action: (player, game_state) => {
-        if (this.action == null) {
+        if (this.action == null) :
           return
-        }
         # 执行动作
       }
     
     # 获取显示文本
     get_display_text: () => {
-        if (!this.enabled) {
+        if (!this.enabled) :
           return "[不可用] " + this.text
-        }
         return this.text
       }
 
@@ -78,15 +75,13 @@ classes:
     
     # 移除场景中的物品
     remove_item: (index) => {
-        if (index < 0 || index >= len(this.items)) {
+        if (index < 0 || index >= len(this.items)) :
           return null
-        }
         item = this.items[index]
         new_items = []
         for (i = 0; i < len(this.items); i++) :
-          if (i != index) {
+          if (i != index) :
             new_items = new_items + [this.items[i]]
-          }
         this.items = new_items
         return item
       }
@@ -106,9 +101,8 @@ classes:
         available = []
         for (i = 0; i < len(this.choices); i++) :
           choice = this.choices[i]
-          if (choice.visible && choice.check_condition(player, game_state)) {
+          if (choice.visible && choice.check_condition(player, game_state)) :
             available = available + [choice]
-          }
         return available
       }
     
@@ -118,54 +112,44 @@ classes:
         dialog_system.show_scene(this.name, this.description)
         
         # 显示场景中的物品
-        if (len(this.items) > 0) {
+        if (len(this.items) > 0) :
           echo "这里的物品:"
           for (i = 0; i < len(this.items); i++) :
             echo "  - " + this.items[i].name
-        }
         
         # 显示NPC
-        if (len(this.npcs) > 0) {
+        if (len(this.npcs) > 0) :
           echo "这里的人:"
           for (i = 0; i < len(this.npcs); i++) :
             echo "  - " + this.npcs[i].name
-        }
         
         # 显示出口
-        if (len(this.exits) > 0) {
+        if (len(this.exits) > 0) :
           echo "出口:"
           directions = []
           # 手动获取所有方向
-          if ("north" in this.exits) {
+          if ("north" in this.exits) :
             directions = directions + ["北"]
-          }
-          if ("south" in this.exits) {
+          if ("south" in this.exits) :
             directions = directions + ["南"]
-          }
-          if ("east" in this.exits) {
+          if ("east" in this.exits) :
             directions = directions + ["东"]
-          }
-          if ("west" in this.exits) {
+          if ("west" in this.exits) :
             directions = directions + ["西"]
-          }
-          if ("up" in this.exits) {
+          if ("up" in this.exits) :
             directions = directions + ["上"]
-          }
-          if ("down" in this.exits) {
+          if ("down" in this.exits) :
             directions = directions + ["下"]
-          }
           echo "  " + directions
-        }
         
         # 显示选择项
         available = this.get_available_choices(player, game_state)
-        if (len(available) > 0) {
+        if (len(available) > 0) :
           echo ""
           echo "你可以:"
           for (i = 0; i < len(available); i++) :
             choice = available[i]
             echo "  [" + str(i + 1) + "] " + choice.get_display_text()
-        }
         
         return available
       }
@@ -173,9 +157,8 @@ classes:
     # 执行选择
     make_choice: (choice_index, player, game_state) => {
         available = this.get_available_choices(player, game_state)
-        if (choice_index < 0 || choice_index >= len(available)) {
+        if (choice_index < 0 || choice_index >= len(available)) :
           return null
-        }
         choice = available[choice_index]
         
         # 执行动作
@@ -189,16 +172,14 @@ classes:
         this.visited = true
         player.location = this.id
         
-        if (this.on_enter != null) {
+        if (this.on_enter != null) :
           this.on_enter(player, game_state)
-        }
       }
     
     # 离开场景
     exit: (player, game_state) => {
-        if (this.on_exit != null) {
+        if (this.on_exit != null) :
           this.on_exit(player, game_state)
-        }
       }
 
   NPC:
@@ -225,9 +206,8 @@ classes:
     
     # 获取问候语
     get_greeting: () => {
-        if (len(this.dialogues) > 0) {
+        if (len(this.dialogues) > 0) :
           return this.dialogues[0].text
-        }
         return "你好，" + this.name + "向你打招呼。"
       }
     
@@ -235,15 +215,13 @@ classes:
     interact: (player, game_state) => {
         dialog_system.show_dialog(this.name, this.get_greeting())
         
-        if (this.is_merchant) {
+        if (this.is_merchant) :
           # 显示商店选项
           echo "1. 购买物品"
           echo "2. 出售物品"
           echo "3. 离开"
           return
-        }
         
-        if (len(this.quests) > 0) {
+        if (len(this.quests) > 0) :
           echo "4. 询问任务"
-        }
       }
