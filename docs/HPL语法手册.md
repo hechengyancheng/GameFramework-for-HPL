@@ -190,6 +190,37 @@ classes:
 - 使用 `parent: BaseClass` 指定继承关系。
 - 子类可以调用父类方法，使用 `this.methodName()`。
 
+### 构造函数
+
+HPL 支持使用 `init` 或 `__init__` 作为构造函数名（推荐使用简化的 `init`）：
+
+```yaml
+classes:
+  Shape:
+    # 使用简化的 init 作为构造函数名
+    init: (name) => {
+        this.name = name
+      }
+    
+    getName: () => {
+        return this.name
+      }
+
+  Rectangle:
+    parent: Shape
+    init: (width, height) => {
+        # 调用父类构造函数
+        this.parent.init("矩形")
+        this.width = width
+        this.height = height
+      }
+```
+
+- 构造函数在对象实例化时自动调用
+- 支持 `init` 和 `__init__` 两种形式（`init` 是 `__init__` 的别名）
+- 子类可以通过 `this.parent.init(...)` 调用父类构造函数
+
+
 ## 5. 对象实例化（objects）
 
 
@@ -220,15 +251,50 @@ else :
 - 条件：如 `i % 2 == 0`。
 - 使用冒号 `:` 表示代码块开始，后续代码缩进。
 
-### 循环语句（for）
+### 循环语句（for in）
+
+HPL 使用 `for in` 语法进行循环迭代，支持遍历范围、数组、字典和字符串。
 
 ```yaml
-for (initialization; condition; increment) :
+for (variable in iterable) :
   code
 ```
 
-- 示例：`for (i = 0; i < count; i++) :`
+- **基本语法**：`for (i in range(5)) :`
+- **遍历数组**：`for (item in arr) :`
+- **遍历字典**：`for (key in dict) :`（遍历字典的键）
+- **遍历字符串**：`for (char in str) :`（遍历字符串的每个字符）
 - 循环体使用缩进表示。
+
+#### 支持的迭代对象
+
+1. **range 函数**：`range(n)` 生成 0 到 n-1 的整数序列
+   ```yaml
+   for (i in range(5)) :
+     echo i  # 输出 0, 1, 2, 3, 4
+   ```
+
+2. **数组**：直接遍历数组元素
+   ```yaml
+   arr = [10, 20, 30]
+   for (item in arr) :
+     echo item  # 输出 10, 20, 30
+   ```
+
+3. **字典**：遍历字典的键
+   ```yaml
+   person = {"name": "Alice", "age": 30}
+   for (key in person) :
+     echo key  # 输出 "name", "age"
+   ```
+
+4. **字符串**：遍历每个字符
+   ```yaml
+   text = "Hello"
+   for (char in text) :
+     echo char  # 输出 H, e, l, l, o
+   ```
+
 
 ### while 循环
 
@@ -263,17 +329,20 @@ while (true) :
   i++
 
 # continue 示例
-for (i = 0; i < 5; i++) :
+for (i in range(5)) :
   if (i == 2) :
     continue  # 跳过 i == 2 的情况
   echo "i = " + i
+
 ```
 
 
-## 7. 异常处理（try-catch）
+## 7. 异常处理（try-catch 和 throw）
 
 
-使用 try-catch 块处理异常。
+使用 try-catch 块处理异常，使用 throw 语句抛出异常。
+
+### try-catch 基本用法
 
 ```yaml
 try :
@@ -284,6 +353,39 @@ catch (error) :
 
 - `error`：捕获的异常变量。
 - 使用冒号和缩进表示代码块。
+
+### throw 语句
+
+使用 `throw` 语句主动抛出异常：
+
+```yaml
+try :
+  if (x == 0) :
+    throw "除数不能为零"
+  result = 10 / x
+catch (error) :
+  echo "错误: " + error
+```
+
+- `throw` 后面可以跟任意表达式，表达式的值将被转换为字符串作为错误信息
+- 如果没有提供表达式，将抛出默认错误信息 "Exception thrown"
+- throw 语句只能在 try-catch 块中使用（或任何会被捕获的地方）
+
+### 嵌套异常处理
+
+```yaml
+try :
+  echo "外层 try 开始"
+  try :
+    echo "内层 try"
+    throw "内层错误"
+  catch (innerError) :
+    echo "内层捕获: " + innerError
+  echo "外层 try 继续"
+catch (outerError) :
+  echo "外层捕获: " + outerError
+```
+
 
 ## 8. 内置函数和操作符
 
@@ -325,13 +427,15 @@ catch (error) :
 
 ### 算术操作符
 
-- `+`：加法（支持数值加法和字符串拼接）
+- `+`：加法（支持数值加法、字符串拼接和**数组拼接**）
   - 如果两边都是数字，执行数值加法：`10 + 20` → `30`
+  - 如果两边都是数组，执行数组拼接：`[1, 2] + [3, 4]` → `[1, 2, 3, 4]`
   - 否则执行字符串拼接：`"Hello" + "World"` → `"HelloWorld"`
 - `-`：减法（仅支持数值）
 - `*`：乘法（仅支持数值）
 - `/`：除法（仅支持数值）
 - `%`：取模（仅支持数值）
+
 
 ### 比较操作符
 - `==`：等于
@@ -393,8 +497,12 @@ classes:
 - 示例：`42`, `0`, `-10`
 
 ### 浮点数（Float）
+
 - 支持小数表示
 - 示例：`3.14`, `-0.5`, `2.0`
+- 支持科学计数法：`1.5e10`, `-2.5e-3`
+- 整数和浮点数混合运算时，结果自动提升为浮点数
+
 
 ### 字符串（String）
 - 使用双引号包围
@@ -428,10 +536,49 @@ second = arr[1]  # 获取第二个元素
 arr[0] = 100  # 修改第一个元素
 ```
 
+
 - 数组可以包含不同类型的元素：
 ```yaml
 mixed = [1, "hello", true, 3.14]
 ```
+
+### 字典/映射（Dictionary/Map）
+
+- 使用花括号 `{}` 定义字典字面量
+- 键必须是字符串，值可以是任意类型
+- 使用 `dict[key]` 语法访问字典元素
+- 支持字典元素赋值：`dict[key] = value`
+
+```yaml
+# 字典定义
+person = {
+  "name": "Alice",
+  "age": 30,
+  "is_student": false
+}
+
+# 字典访问
+name = person["name"]  # 获取值 "Alice"
+age = person["age"]   # 获取值 30
+
+# 字典元素赋值
+person["age"] = 31
+person["city"] = "Beijing"  # 添加新键值对
+```
+
+- 字典可以嵌套：
+```yaml
+nested = {
+  "user": {
+    "name": "Bob",
+    "contacts": {
+      "email": "bob@example.com"
+    }
+  }
+}
+email = nested["user"]["contacts"]["email"]
+```
+
 
 
 
@@ -512,12 +659,13 @@ classes:
         this.print("Hello World")
       }
     showmessages: (count) => {
-        for (i = 0; i < count; i++) :
+        for (i in range(count)) :
           if (i % 2 == 0) :
             this.print("Even: Hello World " + i)
           else :
             this.print("Odd: Hello World " + i)
       }
+
 
 objects:
   printer: MessagePrinter()
@@ -556,20 +704,19 @@ call: main()
 ```yaml
 classes:
   FeatureDemo:
-    # 演示 while 循环和 break/continue
+    # 演示 for in 循环和 break/continue
     demo_loop: () => {
-        echo "=== While Loop Demo ==="
-        i = 0
+        echo "=== For In Loop Demo ==="
         sum = 0
-        while (i < 10) :
-          i++
+        for (i in range(10)) :
           if (i == 3) :
             continue  # 跳过 3
           if (i == 7) :
             break     # 在 7 时退出
           sum = sum + i
-        echo "Sum (1+2+4+5+6): " + sum
+        echo "Sum (0+1+2+4+5+6): " + sum
       }
+
     
     # 演示逻辑运算符
     demo_logic: () => {
@@ -723,41 +870,54 @@ HPL 解释器现在包含类型检查，提供清晰的错误信息：
 #### 函数
 
 **基本运算**
-- `math.sqrt(x)` - 平方根
-- `math.pow(base, exp)` - 幂运算
-- `math.abs(x)` - 绝对值（也可作为内置函数使用）
-- `math.max(a, b, ...)` - 最大值（也可作为内置函数使用）
-- `math.min(a, b, ...)` - 最小值（也可作为内置函数使用）
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `math.sqrt(x)` | number | float | 平方根 |
+| `math.pow(base, exp)` | number, number | float | 幂运算 |
+| `math.abs(x)` | number | number | 绝对值（也可作为内置函数使用） |
+| `math.max(a, b, ...)` | number... | number | 最大值（也可作为内置函数使用） |
+| `math.min(a, b, ...)` | number... | number | 最小值（也可作为内置函数使用） |
 
 **三角函数**
-- `math.sin(x)` - 正弦（弧度）
-- `math.cos(x)` - 余弦（弧度）
-- `math.tan(x)` - 正切（弧度）
-- `math.asin(x)` - 反正弦
-- `math.acos(x)` - 反余弦
-- `math.atan(x)` - 反正切
-- `math.atan2(y, x)` - 带象限的反正切
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `math.sin(x)` | number (弧度) | float | 正弦 |
+| `math.cos(x)` | number (弧度) | float | 余弦 |
+| `math.tan(x)` | number (弧度) | float | 正切 |
+| `math.asin(x)` | number (-1~1) | float (弧度) | 反正弦 |
+| `math.acos(x)` | number (-1~1) | float (弧度) | 反余弦 |
+| `math.atan(x)` | number | float (弧度) | 反正切 |
+| `math.atan2(y, x)` | number, number | float (弧度) | 带象限的反正切，处理 y/x 的符号 |
 
 **对数和指数**
-- `math.log(x, base)` - 对数（base 可选，默认自然对数）
-- `math.log10(x)` - 常用对数（以10为底）
-- `math.exp(x)` - e^x
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `math.log(x, base?)` | number, number? | float | 对数，base 可选，默认自然对数 e |
+| `math.log10(x)` | number | float | 常用对数（以10为底） |
+| `math.exp(x)` | number | float | e 的 x 次幂 |
 
 **数值处理**
-- `math.floor(x)` - 向下取整
-- `math.ceil(x)` - 向上取整
-- `math.round(x, ndigits)` - 四舍五入（ndigits 可选）
-- `math.trunc(x)` - 截断小数部分
-- `math.factorial(n)` - 阶乘
-- `math.gcd(a, b)` - 最大公约数
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `math.floor(x)` | number | int | 向下取整 |
+| `math.ceil(x)` | number | int | 向上取整 |
+| `math.round(x, ndigits?)` | number, int? | number | 四舍五入，ndigits 指定小数位数 |
+| `math.trunc(x)` | number | int | 截断小数部分 |
+| `math.factorial(n)` | int (≥0) | int | 阶乘 |
+| `math.gcd(a, b)` | int, int | int | 最大公约数 |
 
 **角度转换**
-- `math.degrees(x)` - 弧度转角度
-- `math.radians(x)` - 角度转弧度
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `math.degrees(x)` | number (弧度) | float | 弧度转角度 |
+| `math.radians(x)` | number (角度) | float | 角度转弧度 |
 
 **特殊函数**
-- `math.is_nan(x)` - 检查是否为 NaN
-- `math.is_inf(x)` - 检查是否为无穷大
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `math.is_nan(x)` | number | boolean | 检查是否为 NaN |
+| `math.is_inf(x)` | number | boolean | 检查是否为无穷大 |
+
 
 
 ### 17.2 io 模块 - 文件操作
