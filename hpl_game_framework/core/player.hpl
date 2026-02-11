@@ -50,7 +50,7 @@ classes:
     add_item: (item) => {
         # 检查是否可堆叠
         if (item.type == "consumable" || item.type == "misc") :
-          for (i = 0; i < len(this.items); i++) :
+          for (i in range(len(this.items))) :
             existing = this.items[i]
             if (existing.id == item.id) :
               existing.quantity = existing.quantity + item.quantity
@@ -63,6 +63,7 @@ classes:
         this.items = this.items + [item]
         return true
       }
+
     
     # 移除物品
     remove_item: (index, quantity) => {
@@ -74,11 +75,12 @@ classes:
         if (item.quantity <= quantity) :
           # 移除整个物品
           new_items = []
-          for (i = 0; i < len(this.items); i++) :
+          for (i in range(len(this.items))) :
             if (i != index) :
               new_items = new_items + [this.items[i]]
           this.items = new_items
           return item
+
         else :
           # 减少数量
           item.quantity = item.quantity - quantity
@@ -97,11 +99,12 @@ classes:
     
     # 查找物品
     find_item: (item_id) => {
-        for (i = 0; i < len(this.items); i++) :
+        for (i in range(len(this.items))) :
           if (this.items[i].id == item_id) :
             return i
         return -1
       }
+
     
     # 检查是否有物品
     has_item: (item_id) => {
@@ -111,29 +114,32 @@ classes:
     # 获取物品列表
     get_item_list: () => {
         list = []
-        for (i = 0; i < len(this.items); i++) :
+        for (i in range(len(this.items))) :
           item = this.items[i]
           list = list + [str(i + 1) + ". " + item.get_info()]
         return list
       }
+
     
     # 获取已装备武器
     get_equipped_weapon: () => {
-        for (i = 0; i < len(this.items); i++) :
+        for (i in range(len(this.items))) :
           item = this.items[i]
           if (item.type == "weapon" && item.equipped) :
             return item
         return null
       }
+
     
     # 获取已装备防具
     get_equipped_armor: () => {
-        for (i = 0; i < len(this.items); i++) :
+        for (i in range(len(this.items))) :
           item = this.items[i]
           if (item.type == "armor" && item.equipped) :
             return item
         return null
       }
+
     
     # 装备物品
     equip_item: (index) => {
@@ -143,7 +149,7 @@ classes:
         
         # 取消同类型其他装备的装备状态
         if (item.type == "weapon" || item.type == "armor") :
-          for (i = 0; i < len(this.items); i++) :
+          for (i in range(len(this.items))) :
             other = this.items[i]
             if (other.type == item.type) :
               other.equipped = false
@@ -151,6 +157,7 @@ classes:
         item.equipped = true
         return true
       }
+
     
     # 卸下装备
     unequip_item: (index) => {
@@ -329,10 +336,11 @@ classes:
         if (len(items) == 0) :
           echo "背包是空的"
         else :
-          for (i = 0; i < len(items); i++) :
+          for (i in range(len(items))) :
             echo items[i]
         echo "=========================="
       }
+
     
     # 添加任务
     add_quest: (quest_id, quest_name, description) => {
@@ -349,7 +357,7 @@ classes:
     
     # 完成任务
     complete_quest: (quest_id) => {
-        for (i = 0; i < len(this.quests); i++) :
+        for (i in range(len(this.quests))) :
           if (this.quests[i].id == quest_id) :
             this.quests[i].completed = true
             this.completed_quests = this.completed_quests + [this.quests[i]]
@@ -357,11 +365,12 @@ classes:
             return true
         return false
       }
+
     
     # 获取进行中的任务
     get_active_quests: () => {
         active = []
-        for (i = 0; i < len(this.quests); i++) :
+        for (i in range(len(this.quests))) :
           if (!this.quests[i].completed) :
             active = active + [this.quests[i]]
         return active

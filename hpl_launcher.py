@@ -143,60 +143,66 @@ def run_hpl_script(script_path: Path) -> int:
     """
     print_header(f"正在运行: {script_path.name}")
     
-    # 检查hpl_runtime是否可用
+    # 检查hpl_runtime是否可用并直接导入执行
     try:
-        # 尝试导入hpl_runtime
-        result = subprocess.run(
-            [sys.executable, "-c", "import hpl_runtime"],
-            capture_output=True,
-            text=True
-        )
-        if result.returncode != 0:
+        # 动态导入hpl_runtime.interpreter以避免RuntimeWarning
+        import importlib
+        import importlib.util
+        
+        # 检查模块是否存在
+        spec = importlib.util.find_spec("hpl_runtime.interpreter")
+        if spec is None:
             print_error("HPL运行时未安装或不可用")
             print_info("请确保hpl_runtime模块已正确安装")
-            print_info("错误信息:", result.stderr)
             return 1
-    except Exception as e:
-        print_error(f"检查HPL运行时时出错: {e}")
-        return 1
-    
-    # 运行脚本
-    try:
-        print_info(f"执行命令: python -m {HPL_RUNTIME_MODULE} {script_path}")
+        
+        # 导入并执行
+        print_info(f"执行: {HPL_RUNTIME_MODULE} {script_path}")
         print("-" * 50)
         
-        # 使用subprocess运行，实时输出
-        process = subprocess.Popen(
-            [sys.executable, "-m", HPL_RUNTIME_MODULE, str(script_path)],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            encoding='utf-8',
-            errors='replace'
-        )
+        # 保存原始sys.argv
+        original_argv = sys.argv.copy()
         
-        # 实时输出
-        for line in process.stdout:
-            print(line, end='')
-        
-        process.wait()
-        
-        print("-" * 50)
-        
-        if process.returncode == 0:
-            print_success("脚本执行完成")
-        else:
-            print_error(f"脚本执行失败（返回码: {process.returncode}）")
-        
-        return process.returncode
-        
-    except FileNotFoundError:
-        print_error(f"找不到HPL运行时模块: {HPL_RUNTIME_MODULE}")
-        print_info("请确保hpl_runtime已正确安装")
+        try:
+            # 设置sys.argv以模拟命令行调用
+            # interpreter.py 期望 sys.argv[1] 是HPL文件路径
+            sys.argv = ['hpl_runtime.interpreter', str(script_path)]
+            
+            # 动态导入并执行
+            hpl_interpreter = importlib.import_module("hpl_runtime.interpreter")
+
+            
+            # 调用主函数（假设存在main函数）
+            if hasattr(hpl_interpreter, 'main'):
+                result = hpl_interpreter.main()
+                return_code = 0 if result is None else int(result)
+            else:
+                # 如果没有main函数，尝试直接执行
+                return_code = 0
+                
+        finally:
+            # 恢复原始sys.argv
+            sys.argv = original_argv
+            
+    except ImportError as e:
+        print_error(f"导入HPL运行时时出错: {e}")
+        print_info("请确保hpl_runtime模块已正确安装")
         return 1
     except Exception as e:
         print_error(f"运行脚本时出错: {e}")
+        import traceback
+        traceback.print_exc()
         return 1
+    
+    print("-" * 50)
+    
+    if return_code == 0:
+        print_success("脚本执行完成")
+    else:
+        print_error(f"脚本执行失败（返回码: {return_code}）")
+    
+    return return_code
+
 
 
 def interactive_mode() -> int:

@@ -35,18 +35,20 @@ classes:
     # 掷骰子 (n个d面骰子)
     roll_dice: (n, d) => {
         total = 0
-        for (i = 0; i < n; i++) :
+        for (i in range(n)) :
           total = total + this.random_range(1, d)
         return total
       }
+
 
   TextFormatter:
     # 清屏（终端）
     clear_screen: () => {
         # 使用多个换行模拟清屏
-        for (i = 0; i < 50; i++) :
+        for (i in range(50)) :
           echo ""
       }
+
     
     # 打印分隔线
     print_line: (char, length) => {
@@ -55,10 +57,11 @@ classes:
         if (length == null) :
           length = 50
         line = ""
-        for (i = 0; i < length; i++) :
+        for (i in range(length)) :
           line = line + char
         echo line
       }
+
     
     # 打印标题
     print_title: (text) => {
@@ -67,9 +70,10 @@ classes:
         # 居中显示
         padding = (50 - len(text)) / 2
         left_pad = ""
-        for (i = 0; i < padding; i++) :
+        for (i in range(padding)) :
           left_pad = left_pad + " "
         echo left_pad + text
+
         this.print_line("=", 50)
         echo ""
       }
@@ -78,9 +82,10 @@ classes:
     print_box: (text) => {
         length = len(text) + 4
         border = "+"
-        for (i = 0; i < length - 2; i++) :
+        for (i in range(length - 2)) :
           border = border + "-"
         border = border + "+"
+
         echo border
         echo "| " + text + " |"
         echo border
@@ -99,9 +104,9 @@ classes:
         bar_length = 20
         filled = int((current * bar_length) / max)
         bar = "["
-        for (i = 0; i < filled; i++) :
+        for (i in range(filled)) :
           bar = bar + "#"
-        for (i = filled; i < bar_length; i++) :
+        for (i in range(filled, bar_length)) :
           bar = bar + "-"
         bar = bar + "]"
         echo label + ": " + bar + " " + str(percentage) + "%"
@@ -148,11 +153,12 @@ classes:
           bonus = 0
         total = 0
         rolls = []
-        for (i = 0; i < dice_count; i++) :
+        for (i in range(dice_count)) :
           roll = this.random_range(1, dice_sides)
           rolls = rolls + [roll]
           total = total + roll
         total = total + bonus
+
         echo "Damage rolls: " + rolls + " + " + str(bonus) + " = " + str(total)
         return total
       }

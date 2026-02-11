@@ -223,8 +223,9 @@ classes:
     # 列出所有存档
     list_saves: () => {
         saves = []
-        for (slot = 1; slot <= 5; slot++) :
+        for (slot in range(1, 6)) :
           filename = "save_" + str(slot) + ".json"
+
           filepath = this.save_dir + "/" + filename
           if (io.file_exists(filepath)) :
             try :
@@ -388,8 +389,9 @@ classes:
         echo ""
         
         saves = this.save_manager.list_saves()
-        for (i = 0; i < len(saves); i++) :
+        for (i in range(len(saves))) :
           echo "  " + saves[i]
+
         
         echo ""
         echo "  [0] 返回"

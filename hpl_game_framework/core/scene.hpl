@@ -79,12 +79,13 @@ classes:
           return null
         item = this.items[index]
         new_items = []
-        for (i = 0; i < len(this.items); i++) :
+        for (i in range(len(this.items))) :
           if (i != index) :
             new_items = new_items + [this.items[i]]
         this.items = new_items
         return item
       }
+
     
     # 添加NPC
     add_npc: (npc) => {
@@ -99,12 +100,13 @@ classes:
     # 获取可用选择
     get_available_choices: (player, game_state) => {
         available = []
-        for (i = 0; i < len(this.choices); i++) :
+        for (i in range(len(this.choices))) :
           choice = this.choices[i]
           if (choice.visible && choice.check_condition(player, game_state)) :
             available = available + [choice]
         return available
       }
+
     
     # 显示场景
     display: (player, game_state) => {
@@ -114,14 +116,15 @@ classes:
         # 显示场景中的物品
         if (len(this.items) > 0) :
           echo "这里的物品:"
-          for (i = 0; i < len(this.items); i++) :
+          for (i in range(len(this.items))) :
             echo "  - " + this.items[i].name
         
         # 显示NPC
         if (len(this.npcs) > 0) :
           echo "这里的人:"
-          for (i = 0; i < len(this.npcs); i++) :
+          for (i in range(len(this.npcs))) :
             echo "  - " + this.npcs[i].name
+
         
         # 显示出口
         if (len(this.exits) > 0) :
@@ -147,9 +150,10 @@ classes:
         if (len(available) > 0) :
           echo ""
           echo "你可以:"
-          for (i = 0; i < len(available); i++) :
+          for (i in range(len(available))) :
             choice = available[i]
             echo "  [" + str(i + 1) + "] " + choice.get_display_text()
+
         
         return available
       }

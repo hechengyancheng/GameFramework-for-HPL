@@ -54,8 +54,9 @@ classes:
     # 获取选择项
     get_choice: (prompt, options) => {
         echo prompt
-        for (i = 0; i < len(options); i++) :
+        for (i in range(len(options))) :
           echo "  " + str(i + 1) + ". " + options[i]
+
         while (true) :
           echo "请输入选项编号 (1-" + str(len(options)) + "): "
           input_str = input()
@@ -81,8 +82,9 @@ classes:
     show_menu: (title, options) => {
         echo ""
         echo "========== " + title + " =========="
-        for (i = 0; i < len(options); i++) :
+        for (i in range(len(options))) :
           echo "  [" + str(i + 1) + "] " + options[i]
+
         echo "  [0] 返回/退出"
         echo "=================================="
         
@@ -121,7 +123,7 @@ classes:
           
           echo ""
           echo "========== " + title + " (第 " + str(current_page + 1) + "/" + str(total_pages) + " 页) =========="
-          for (i = start; i < end; i++) :
+          for (i in range(start, end)) :
             echo "  [" + str(i + 1) + "] " + items[i]
           
           echo ""
@@ -168,8 +170,9 @@ classes:
     show_dialog_with_choices: (speaker, text, choices) => {
         this.show_dialog(speaker, text)
         echo "你的回应:"
-        for (i = 0; i < len(choices); i++) :
+        for (i in range(len(choices))) :
           echo "  " + str(i + 1) + ". " + choices[i]
+
         return input_handler.get_choice("", choices)
       }
     

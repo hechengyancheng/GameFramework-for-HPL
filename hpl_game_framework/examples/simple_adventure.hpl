@@ -90,7 +90,8 @@ classes:
         if (menu_choice == "load") :
           # 显示加载菜单
           saves = this.engine.save_manager.list_saves()
-          for (i = 0; i < len(saves); i++) :
+          for (i in range(len(saves))) :
+
             echo saves[i]
           
           slot = input_handler.get_int("选择存档 (1-5): ", 1, 5)
