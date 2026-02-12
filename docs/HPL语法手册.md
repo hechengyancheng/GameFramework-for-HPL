@@ -190,6 +190,37 @@ classes:
 - 使用 `parent: BaseClass` 指定继承关系。
 - 子类可以调用父类方法，使用 `this.methodName()`。
 
+### 构造函数
+
+HPL 支持使用 `init` 或 `__init__` 作为构造函数名（推荐使用简化的 `init`）：
+
+```yaml
+classes:
+  Shape:
+    # 使用简化的 init 作为构造函数名
+    init: (name) => {
+        this.name = name
+      }
+    
+    getName: () => {
+        return this.name
+      }
+
+  Rectangle:
+    parent: Shape
+    init: (width, height) => {
+        # 调用父类构造函数
+        this.parent.init("矩形")
+        this.width = width
+        this.height = height
+      }
+```
+
+- 构造函数在对象实例化时自动调用
+- 支持 `init` 和 `__init__` 两种形式（`init` 是 `__init__` 的别名）
+- 子类可以通过 `this.parent.init(...)` 调用父类构造函数
+
+
 ## 5. 对象实例化（objects）
 
 
@@ -220,15 +251,50 @@ else :
 - 条件：如 `i % 2 == 0`。
 - 使用冒号 `:` 表示代码块开始，后续代码缩进。
 
-### 循环语句（for）
+### 循环语句（for in）
+
+HPL 使用 `for in` 语法进行循环迭代，支持遍历范围、数组、字典和字符串。
 
 ```yaml
-for (initialization; condition; increment) :
+for (variable in iterable) :
   code
 ```
 
-- 示例：`for (i = 0; i < count; i++) :`
+- **基本语法**：`for (i in range(5)) :`
+- **遍历数组**：`for (item in arr) :`
+- **遍历字典**：`for (key in dict) :`（遍历字典的键）
+- **遍历字符串**：`for (char in str) :`（遍历字符串的每个字符）
 - 循环体使用缩进表示。
+
+#### 支持的迭代对象
+
+1. **range 函数**：`range(n)` 生成 0 到 n-1 的整数序列
+   ```yaml
+   for (i in range(5)) :
+     echo i  # 输出 0, 1, 2, 3, 4
+   ```
+
+2. **数组**：直接遍历数组元素
+   ```yaml
+   arr = [10, 20, 30]
+   for (item in arr) :
+     echo item  # 输出 10, 20, 30
+   ```
+
+3. **字典**：遍历字典的键
+   ```yaml
+   person = {"name": "Alice", "age": 30}
+   for (key in person) :
+     echo key  # 输出 "name", "age"
+   ```
+
+4. **字符串**：遍历每个字符
+   ```yaml
+   text = "Hello"
+   for (char in text) :
+     echo char  # 输出 H, e, l, l, o
+   ```
+
 
 ### while 循环
 
@@ -263,17 +329,20 @@ while (true) :
   i++
 
 # continue 示例
-for (i = 0; i < 5; i++) :
+for (i in range(5)) :
   if (i == 2) :
     continue  # 跳过 i == 2 的情况
   echo "i = " + i
+
 ```
 
 
-## 7. 异常处理（try-catch）
+## 7. 异常处理（try-catch 和 throw）
 
 
-使用 try-catch 块处理异常。
+使用 try-catch 块处理异常，使用 throw 语句抛出异常。
+
+### try-catch 基本用法
 
 ```yaml
 try :
@@ -284,6 +353,39 @@ catch (error) :
 
 - `error`：捕获的异常变量。
 - 使用冒号和缩进表示代码块。
+
+### throw 语句
+
+使用 `throw` 语句主动抛出异常：
+
+```yaml
+try :
+  if (x == 0) :
+    throw "除数不能为零"
+  result = 10 / x
+catch (error) :
+  echo "错误: " + error
+```
+
+- `throw` 后面可以跟任意表达式，表达式的值将被转换为字符串作为错误信息
+- 如果没有提供表达式，将抛出默认错误信息 "Exception thrown"
+- throw 语句只能在 try-catch 块中使用（或任何会被捕获的地方）
+
+### 嵌套异常处理
+
+```yaml
+try :
+  echo "外层 try 开始"
+  try :
+    echo "内层 try"
+    throw "内层错误"
+  catch (innerError) :
+    echo "内层捕获: " + innerError
+  echo "外层 try 继续"
+catch (outerError) :
+  echo "外层捕获: " + outerError
+```
+
 
 ## 8. 内置函数和操作符
 
@@ -325,13 +427,15 @@ catch (error) :
 
 ### 算术操作符
 
-- `+`：加法（支持数值加法和字符串拼接）
+- `+`：加法（支持数值加法、字符串拼接和**数组拼接**）
   - 如果两边都是数字，执行数值加法：`10 + 20` → `30`
+  - 如果两边都是数组，执行数组拼接：`[1, 2] + [3, 4]` → `[1, 2, 3, 4]`
   - 否则执行字符串拼接：`"Hello" + "World"` → `"HelloWorld"`
 - `-`：减法（仅支持数值）
 - `*`：乘法（仅支持数值）
 - `/`：除法（仅支持数值）
 - `%`：取模（仅支持数值）
+
 
 ### 比较操作符
 - `==`：等于
@@ -393,8 +497,12 @@ classes:
 - 示例：`42`, `0`, `-10`
 
 ### 浮点数（Float）
+
 - 支持小数表示
 - 示例：`3.14`, `-0.5`, `2.0`
+- 支持科学计数法：`1.5e10`, `-2.5e-3`
+- 整数和浮点数混合运算时，结果自动提升为浮点数
+
 
 ### 字符串（String）
 - 使用双引号包围
@@ -409,6 +517,11 @@ classes:
 ### 布尔值（Boolean）
 - `true` 或 `false`
 - 示例：`flag = true`, `if (false) :`
+
+### 空值（Null）
+- `null`
+- 表示空值或未定义值
+- 示例：`value = null`, `if (value == null) :`
 
 ### 数组（Array）
 - 使用方括号 `[]` 定义数组字面量
@@ -428,10 +541,49 @@ second = arr[1]  # 获取第二个元素
 arr[0] = 100  # 修改第一个元素
 ```
 
+
 - 数组可以包含不同类型的元素：
 ```yaml
 mixed = [1, "hello", true, 3.14]
 ```
+
+### 字典/映射（Dictionary/Map）
+
+- 使用花括号 `{}` 定义字典字面量
+- 键必须是字符串，值可以是任意类型
+- 使用 `dict[key]` 语法访问字典元素
+- 支持字典元素赋值：`dict[key] = value`
+
+```yaml
+# 字典定义
+person = {
+  "name": "Alice",
+  "age": 30,
+  "is_student": false
+}
+
+# 字典访问
+name = person["name"]  # 获取值 "Alice"
+age = person["age"]   # 获取值 30
+
+# 字典元素赋值
+person["age"] = 31
+person["city"] = "Beijing"  # 添加新键值对
+```
+
+- 字典可以嵌套：
+```yaml
+nested = {
+  "user": {
+    "name": "Bob",
+    "contacts": {
+      "email": "bob@example.com"
+    }
+  }
+}
+email = nested["user"]["contacts"]["email"]
+```
+
 
 
 
@@ -512,12 +664,13 @@ classes:
         this.print("Hello World")
       }
     showmessages: (count) => {
-        for (i = 0; i < count; i++) :
+        for (i in range(count)) :
           if (i % 2 == 0) :
             this.print("Even: Hello World " + i)
           else :
             this.print("Odd: Hello World " + i)
       }
+
 
 objects:
   printer: MessagePrinter()
@@ -556,20 +709,19 @@ call: main()
 ```yaml
 classes:
   FeatureDemo:
-    # 演示 while 循环和 break/continue
+    # 演示 for in 循环和 break/continue
     demo_loop: () => {
-        echo "=== While Loop Demo ==="
-        i = 0
+        echo "=== For In Loop Demo ==="
         sum = 0
-        while (i < 10) :
-          i++
+        for (i in range(10)) :
           if (i == 3) :
             continue  # 跳过 3
           if (i == 7) :
             break     # 在 7 时退出
           sum = sum + i
-        echo "Sum (1+2+4+5+6): " + sum
+        echo "Sum (0+1+2+4+5+6): " + sum
       }
+
     
     # 演示逻辑运算符
     demo_logic: () => {
@@ -706,6 +858,13 @@ HPL 解释器现在包含类型检查，提供清晰的错误信息：
 | `json` | JSON 解析和生成 |
 | `os` | 操作系统接口 |
 | `time` | 日期时间处理 |
+| `crypto` | 加密哈希和编码功能 |
+| `random` | 随机数生成 |
+| `string` | 字符串处理 |
+| `re` | 正则表达式操作 |
+| `net` | HTTP 网络请求 |
+
+
 
 
 ### 17.1 math 模块 - 数学函数
@@ -723,41 +882,54 @@ HPL 解释器现在包含类型检查，提供清晰的错误信息：
 #### 函数
 
 **基本运算**
-- `math.sqrt(x)` - 平方根
-- `math.pow(base, exp)` - 幂运算
-- `math.abs(x)` - 绝对值（也可作为内置函数使用）
-- `math.max(a, b, ...)` - 最大值（也可作为内置函数使用）
-- `math.min(a, b, ...)` - 最小值（也可作为内置函数使用）
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `math.sqrt(x)` | number | float | 平方根 |
+| `math.pow(base, exp)` | number, number | float | 幂运算 |
+| `math.abs(x)` | number | number | 绝对值（也可作为内置函数使用） |
+| `math.max(a, b, ...)` | number... | number | 最大值（也可作为内置函数使用） |
+| `math.min(a, b, ...)` | number... | number | 最小值（也可作为内置函数使用） |
 
 **三角函数**
-- `math.sin(x)` - 正弦（弧度）
-- `math.cos(x)` - 余弦（弧度）
-- `math.tan(x)` - 正切（弧度）
-- `math.asin(x)` - 反正弦
-- `math.acos(x)` - 反余弦
-- `math.atan(x)` - 反正切
-- `math.atan2(y, x)` - 带象限的反正切
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `math.sin(x)` | number (弧度) | float | 正弦 |
+| `math.cos(x)` | number (弧度) | float | 余弦 |
+| `math.tan(x)` | number (弧度) | float | 正切 |
+| `math.asin(x)` | number (-1~1) | float (弧度) | 反正弦 |
+| `math.acos(x)` | number (-1~1) | float (弧度) | 反余弦 |
+| `math.atan(x)` | number | float (弧度) | 反正切 |
+| `math.atan2(y, x)` | number, number | float (弧度) | 带象限的反正切，处理 y/x 的符号 |
 
 **对数和指数**
-- `math.log(x, base)` - 对数（base 可选，默认自然对数）
-- `math.log10(x)` - 常用对数（以10为底）
-- `math.exp(x)` - e^x
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `math.log(x, base?)` | number, number? | float | 对数，base 可选，默认自然对数 e |
+| `math.log10(x)` | number | float | 常用对数（以10为底） |
+| `math.exp(x)` | number | float | e 的 x 次幂 |
 
 **数值处理**
-- `math.floor(x)` - 向下取整
-- `math.ceil(x)` - 向上取整
-- `math.round(x, ndigits)` - 四舍五入（ndigits 可选）
-- `math.trunc(x)` - 截断小数部分
-- `math.factorial(n)` - 阶乘
-- `math.gcd(a, b)` - 最大公约数
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `math.floor(x)` | number | int | 向下取整 |
+| `math.ceil(x)` | number | int | 向上取整 |
+| `math.round(x, ndigits?)` | number, int? | number | 四舍五入，ndigits 指定小数位数 |
+| `math.trunc(x)` | number | int | 截断小数部分 |
+| `math.factorial(n)` | int (≥0) | int | 阶乘 |
+| `math.gcd(a, b)` | int, int | int | 最大公约数 |
 
 **角度转换**
-- `math.degrees(x)` - 弧度转角度
-- `math.radians(x)` - 角度转弧度
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `math.degrees(x)` | number (弧度) | float | 弧度转角度 |
+| `math.radians(x)` | number (角度) | float | 角度转弧度 |
 
 **特殊函数**
-- `math.is_nan(x)` - 检查是否为 NaN
-- `math.is_inf(x)` - 检查是否为无穷大
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `math.is_nan(x)` | number | boolean | 检查是否为 NaN |
+| `math.is_inf(x)` | number | boolean | 检查是否为无穷大 |
+
 
 
 ### 17.2 io 模块 - 文件操作
@@ -863,7 +1035,340 @@ HPL 解释器现在包含类型检查，提供清晰的错误信息：
 - `time.local_timezone()` - 获取本地时区偏移（小时）
 
 
+### 17.6 crypto 模块 - 加密哈希和编码
+
+提供加密哈希、编码功能和安全随机数生成。
+
+#### 哈希函数
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `crypto.md5(data)` | string/bytes | string | 计算 MD5 哈希（32位十六进制） |
+| `crypto.sha1(data)` | string/bytes | string | 计算 SHA1 哈希（40位十六进制） |
+| `crypto.sha256(data)` | string/bytes | string | 计算 SHA256 哈希（64位十六进制） |
+| `crypto.sha512(data)` | string/bytes | string | 计算 SHA512 哈希（128位十六进制） |
+| `crypto.sha3_256(data)` | string/bytes | string | 计算 SHA3-256 哈希 |
+| `crypto.sha3_512(data)` | string/bytes | string | 计算 SHA3-512 哈希 |
+| `crypto.blake2b(data, digest_size?)` | string/bytes, int? | string | 计算 BLAKE2b 哈希 |
+| `crypto.blake2s(data, digest_size?)` | string/bytes, int? | string | 计算 BLAKE2s 哈希 |
+| `crypto.hash(data, algorithm?)` | string/bytes, string? | string | 使用指定算法计算哈希，默认 sha256 |
+| `crypto.hmac(data, key, algorithm?)` | string/bytes, string/bytes, string? | string | 计算 HMAC 签名，默认 sha256 |
+
+#### 编码函数
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `crypto.base64_encode(data)` | string/bytes | string | Base64 编码 |
+| `crypto.base64_decode(data)` | string | string/bytes | Base64 解码 |
+| `crypto.base64_urlsafe_encode(data)` | string/bytes | string | URL 安全 Base64 编码 |
+| `crypto.base64_urlsafe_decode(data)` | string | string/bytes | URL 安全 Base64 解码 |
+| `crypto.url_encode(data)` | string | string | URL 编码 |
+| `crypto.url_decode(data)` | string | string | URL 解码 |
+| `crypto.url_encode_plus(data)` | string | string | URL 编码（空格转为+） |
+| `crypto.url_decode_plus(data)` | string | string | URL 解码（+转为空格） |
+
+#### 安全随机数生成
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `crypto.secure_random_bytes(length)` | int | bytes | 生成加密安全随机字节 |
+| `crypto.secure_random_hex(length)` | int | string | 生成加密安全随机十六进制字符串 |
+| `crypto.secure_random_urlsafe(length)` | int | string | 生成 URL 安全随机字符串 |
+| `crypto.secure_choice(sequence)` | array/string | any | 从序列中安全随机选择 |
+| `crypto.compare_digest(a, b)` | string/bytes, string/bytes | boolean | 安全比较（防时序攻击） |
+
+#### 密钥派生
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `crypto.pbkdf2_hmac(password, salt, iterations?, dklen?, hash_name?)` | string/bytes, string/bytes, int?, int?, string? | string | PBKDF2 密钥派生 |
+| `crypto.scrypt(password, salt, n?, r?, p?, dklen?)` | string/bytes, string/bytes, int?, int?, int?, int? | string | scrypt 密钥派生 |
+
+
+### 17.7 random 模块 - 随机数生成
+
+提供随机数生成和 UUID 生成功能。
+
+#### 基础随机数
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `random.random()` | - | float | 生成 [0, 1) 范围内的随机浮点数 |
+| `random.random_int(min, max)` | int, int | int | 生成 [min, max] 范围内的随机整数 |
+| `random.random_float(min, max)` | number, number | float | 生成 [min, max) 范围内的随机浮点数 |
+| `random.choice(array)` | array | any | 从数组中随机选择一个元素 |
+| `random.shuffle(array)` | array | array | 随机打乱数组（原地修改） |
+| `random.sample(array, count)` | array, int | array | 无放回抽样指定数量元素 |
+| `random.seed(value)` | int/float/string | boolean | 设置随机种子 |
+| `random.random_bool()` | - | boolean | 生成随机布尔值 |
+
+#### UUID 生成
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `random.uuid()` | - | string | 生成 UUID v4（随机） |
+| `random.uuid1()` | - | string | 生成 UUID v1（基于时间和 MAC） |
+| `random.uuid3(namespace, name)` | string, string | string | 生成 UUID v3（基于 MD5） |
+| `random.uuid5(namespace, name)` | string, string | string | 生成 UUID v5（基于 SHA1） |
+
+**命名空间常量**：`dns`, `url`, `oid`, `x500`
+
+#### 随机字节
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `random.random_bytes(length)` | int | bytes | 生成指定长度随机字节 |
+| `random.random_hex(length)` | int | string | 生成指定长度随机十六进制字符串 |
+
+#### 统计分布随机数
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `random.gauss(mu?, sigma?)` | number?, number? | float | 高斯分布，默认 mu=0, sigma=1 |
+| `random.triangular(low?, high?, mode?)` | number?, number?, number? | float | 三角分布，默认 low=0, high=1 |
+| `random.expovariate(lambd)` | number | float | 指数分布 |
+| `random.betavariate(alpha, beta)` | number, number | float | Beta 分布 |
+| `random.gammavariate(alpha, beta)` | number, number | float | Gamma 分布 |
+| `random.lognormvariate(mu, sigma)` | number, number | float | 对数正态分布 |
+| `random.vonmisesvariate(mu, kappa)` | number, number | float | von Mises 分布 |
+| `random.paretovariate(alpha)` | number | float | Pareto 分布 |
+| `random.weibullvariate(alpha, beta)` | number, number | float | Weibull 分布 |
+
+#### 状态管理
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `random.getstate()` | - | state | 获取随机数生成器状态 |
+| `random.setstate(state)` | state | boolean | 恢复随机数生成器状态 |
+
+
+### 17.8 string 模块 - 字符串处理
+
+提供字符串处理功能。
+
+#### 基础操作
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `string.length(s)` | string | int | 获取字符串长度 |
+| `string.split(s, delimiter?, maxsplit?)` | string, string?, int? | array | 分割字符串为数组 |
+| `string.join(array, delimiter?)` | array, string? | string | 使用分隔符连接数组元素 |
+| `string.replace(s, old, new, count?)` | string, string, string, int? | string | 替换子串 |
+| `string.substring(s, start, end?)` | string, int, int? | string | 截取子字符串 |
+
+#### 空白处理
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `string.trim(s, chars?)` | string, string? | string | 去除首尾空白或指定字符 |
+| `string.trim_start(s, chars?)` | string, string? | string | 去除开头空白或指定字符 |
+| `string.trim_end(s, chars?)` | string, string? | string | 去除结尾空白或指定字符 |
+| `string.is_empty(s)` | string | boolean | 检查字符串是否为空 |
+| `string.is_blank(s)` | string | boolean | 检查字符串是否为空或仅空白 |
+
+#### 大小写转换
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `string.to_upper(s)` | string | string | 转为大写 |
+| `string.to_lower(s)` | string | string | 转为小写 |
+| `string.capitalize(s)` | string | string | 首字母大写 |
+| `string.title_case(s)` | string | string | 每个单词首字母大写 |
+| `string.swap_case(s)` | string | string | 交换大小写 |
+
+#### 查找和检查
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `string.index_of(s, substr, start?)` | string, string, int? | int | 查找子串位置，未找到返回 -1 |
+| `string.last_index_of(s, substr, start?)` | string, string, int? | int | 从后往前查找子串位置 |
+| `string.starts_with(s, prefix)` | string, string | boolean | 检查是否以指定前缀开头 |
+| `string.ends_with(s, suffix)` | string, string | boolean | 检查是否以指定后缀结尾 |
+| `string.contains(s, substr)` | string, string | boolean | 检查是否包含子串 |
+| `string.count(s, substr)` | string, string | int | 统计子串出现次数 |
+
+#### 其他操作
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `string.reverse(s)` | string | string | 反转字符串 |
+| `string.repeat(s, count)` | string, int | string | 重复字符串指定次数 |
+| `string.pad_start(s, length, pad?)` | string, int, string? | string | 在开头填充至指定长度 |
+| `string.pad_end(s, length, pad?)` | string, int, string? | string | 在结尾填充至指定长度 |
+
+
+### 17.9 re 模块 - 正则表达式
+
+提供正则表达式匹配、搜索、替换等功能。
+
+#### 正则表达式标志
+
+| 标志 | 说明 |
+|------|------|
+| `i` | 忽略大小写 (IGNORECASE) |
+| `m` | 多行模式 (MULTILINE) |
+| `s` | 点匹配所有字符包括换行 (DOTALL) |
+| `x` | 详细模式，允许注释和空白 (VERBOSE) |
+| `a` | ASCII 匹配 (ASCII) |
+| `u` | Unicode 匹配，默认开启 (UNICODE) |
+| `l` | 本地化匹配 (LOCALE) |
+
+**使用方式**：将标志字母组合成字符串传入，如 `"im"` 表示忽略大小写且多行模式。
+
+#### 匹配函数
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `re.match(pattern, string, flags?)` | string, string, string? | object/null | 从字符串开头匹配，返回匹配对象或 null |
+| `re.search(pattern, string, flags?)` | string, string, string? | object/null | 在字符串中搜索，返回第一个匹配对象或 null |
+| `re.test(pattern, string, flags?)` | string, string, string? | boolean | 测试字符串是否匹配正则表达式 |
+
+**匹配对象结构**：
+```yaml
+{
+  'group': "匹配的完整字符串",
+  'groups': ["捕获组1", "捕获组2"],  # 捕获组数组
+  'start': 0,  # 匹配开始位置
+  'end': 5,    # 匹配结束位置
+  'span': [0, 5]  # 起止位置数组
+}
+```
+
+#### 查找函数
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `re.find_all(pattern, string, flags?)` | string, string, string? | array | 查找所有匹配项，返回匹配字符串数组 |
+| `re.find_iter(pattern, string, flags?)` | string, string, string? | array | 查找所有匹配项，返回匹配对象数组 |
+
+#### 修改函数
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `re.replace(pattern, repl, string, count?, flags?)` | string, string, string, int?, string? | string | 替换匹配项，count=0 表示替换所有 |
+| `re.split(pattern, string, maxsplit?, flags?)` | string, string, int?, string? | array | 使用正则表达式分割字符串 |
+| `re.escape(string)` | string | string | 转义字符串中的正则表达式特殊字符 |
+
+#### 工具函数
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `re.compile(pattern, flags?)` | string, string? | object | 预编译正则表达式，返回模式对象 |
+| `re.validate(pattern_name, string)` | string, string | boolean | 使用预定义模式验证字符串 |
+
+**支持的预定义模式**：
+- `email` - 邮箱地址
+- `url` - URL 地址
+- `ip` - IP 地址
+- `phone` - 中国大陆手机号
+- `id_card` - 中国大陆身份证
+- `chinese` - 中文字符
+- `english` - 英文字母
+- `number` - 数字
+- `whitespace` - 空白字符
+- `word` - 单词字符
+
+#### 预定义模式常量
+
+| 常量 | 说明 |
+|------|------|
+| `re.PATTERN_EMAIL` | 邮箱匹配模式 |
+| `re.PATTERN_URL` | URL 匹配模式 |
+| `re.PATTERN_IP` | IP 地址匹配模式 |
+| `re.PATTERN_PHONE` | 手机号匹配模式 |
+| `re.PATTERN_ID_CARD` | 身份证匹配模式 |
+| `re.PATTERN_CHINESE` | 中文字符匹配模式 |
+| `re.PATTERN_ENGLISH` | 英文字母匹配模式 |
+| `re.PATTERN_NUMBER` | 数字匹配模式 |
+| `re.PATTERN_WHITESPACE` | 空白字符匹配模式 |
+| `re.PATTERN_WORD` | 单词字符匹配模式 |
+
+
+### 17.10 net 模块 - 网络请求
+
+提供 HTTP 客户端功能，支持 GET、POST 等请求。
+
+#### HTTP 请求函数
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `net.get(url, headers?, timeout?, verify_ssl?)` | string, dict?, number?, boolean? | object | 发送 HTTP GET 请求 |
+| `net.post(url, data?, headers?, timeout?, verify_ssl?)` | string, any?, dict?, number?, boolean? | object | 发送 HTTP POST 请求，data 可为字符串或字典 |
+| `net.put(url, data?, headers?, timeout?, verify_ssl?)` | string, any?, dict?, number?, boolean? | object | 发送 HTTP PUT 请求 |
+| `net.delete(url, headers?, timeout?, verify_ssl?)` | string, dict?, number?, boolean? | object | 发送 HTTP DELETE 请求 |
+| `net.head(url, headers?, timeout?, verify_ssl?)` | string, dict?, number?, boolean? | object | 发送 HTTP HEAD 请求 |
+| `net.request(method, url, data?, headers?, timeout?, verify_ssl?)` | string, string, any?, dict?, number?, boolean? | object | 发送任意 HTTP 请求 |
+
+**响应对象结构**：
+```yaml
+{
+  'status': 200,        # HTTP 状态码
+  'reason': "OK",       # 状态描述
+  'headers': {},        # 响应头字典
+  'body': "响应内容",    # 响应体字符串
+  'url': "最终URL"      # 实际请求的 URL（可能经过重定向）
+}
+```
+
+#### URL 处理函数
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `net.encode_url(params)` | dict | string | 将参数字典编码为 URL 查询字符串 |
+| `net.decode_url(query_string)` | string | dict | 解码 URL 查询字符串为字典 |
+| `net.parse_url(url)` | string | object | 解析 URL 组件 |
+| `net.build_url(base, params?)` | string, dict? | string | 构建完整 URL |
+
+**parse_url 返回结构**：
+```yaml
+{
+  'scheme': "https",     # 协议
+  'netloc': "api.example.com",  # 网络位置
+  'path': "/users",      # 路径
+  'params': "",          # 参数
+  'query': "id=123",     # 查询字符串
+  'fragment': "",        # 片段
+  'username': null,      # 用户名
+  'password': null,      # 密码
+  'hostname': "api.example.com",  # 主机名
+  'port': null           # 端口
+}
+```
+
+#### HTTP 状态码检查函数
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `net.is_success(status_code)` | int | boolean | 检查是否为 2xx 成功状态码 |
+| `net.is_redirect(status_code)` | int | boolean | 检查是否为 3xx 重定向状态码 |
+| `net.is_client_error(status_code)` | int | boolean | 检查是否为 4xx 客户端错误状态码 |
+| `net.is_server_error(status_code)` | int | boolean | 检查是否为 5xx 服务器错误状态码 |
+
+#### HTTP 状态码常量
+
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| `net.STATUS_OK` | 200 | 请求成功 |
+| `net.STATUS_CREATED` | 201 | 已创建 |
+| `net.STATUS_ACCEPTED` | 202 | 已接受 |
+| `net.STATUS_NO_CONTENT` | 204 | 无内容 |
+| `net.STATUS_MOVED_PERMANENTLY` | 301 | 永久重定向 |
+| `net.STATUS_FOUND` | 302 | 临时重定向 |
+| `net.STATUS_NOT_MODIFIED` | 304 | 未修改 |
+| `net.STATUS_BAD_REQUEST` | 400 | 请求错误 |
+| `net.STATUS_UNAUTHORIZED` | 401 | 未授权 |
+| `net.STATUS_FORBIDDEN` | 403 | 禁止访问 |
+| `net.STATUS_NOT_FOUND` | 404 | 未找到 |
+| `net.STATUS_METHOD_NOT_ALLOWED` | 405 | 方法不允许 |
+| `net.STATUS_INTERNAL_ERROR` | 500 | 服务器内部错误 |
+| `net.STATUS_NOT_IMPLEMENTED` | 501 | 未实现 |
+| `net.STATUS_BAD_GATEWAY` | 502 | 网关错误 |
+| `net.STATUS_SERVICE_UNAVAILABLE` | 503 | 服务不可用 |
+
+
 ## 18. 标准库使用示例
+
+
 
 以下示例展示了如何使用标准库模块：
 
@@ -874,6 +1379,9 @@ imports:
   - json
   - os
   - time
+  - crypto
+  - random
+  - string
 
 main: () => {
     # === Math 模块 ===
@@ -911,13 +1419,99 @@ main: () => {
     # === JSON 模块 ===
     echo ""
     echo "=== JSON Module ==="
-    # HPL 数组可以直接序列化为 JSON
+    # HPL 的数组可以直接序列化为 JSON
     data = [1, 2, 3, "hello", "world"]
     json_str = json.stringify(data)
     echo("JSON: " + json_str)
+    
+    # === Crypto 模块 ===
+    echo ""
+    echo "=== Crypto Module ==="
+    data = "Hello, HPL!"
+    echo "MD5: " + crypto.md5(data)
+    echo "SHA256: " + crypto.sha256(data)
+    echo "Base64: " + crypto.base64_encode(data)
+    echo "URL encoded: " + crypto.url_encode(data)
+    echo "Secure random hex: " + crypto.secure_random_hex(16)
+    
+    # === Random 模块 ===
+    echo ""
+    echo "=== Random Module ==="
+    echo "Random int (1-100): " + random.random_int(1, 100)
+    echo "Random float: " + random.random()
+    echo "UUID: " + random.uuid()
+    arr = [1, 2, 3, 4, 5]
+    echo "Random choice: " + random.choice(arr)
+    
+    # === String 模块 ===
+    echo ""
+    echo "=== String Module ==="
+    text = "  Hello, HPL!  "
+    echo "Original: '" + text + "'"
+    echo "Trimmed: '" + string.trim(text) + "'"
+    echo "Upper: " + string.to_upper(text)
+    echo "Lower: " + string.to_lower(text)
+    words = string.split("apple,banana,cherry", ",")
+    echo "Split: " + words
+    echo "Join: " + string.join(words, " - ")
+    
+    # === Re 模块 ===
+    echo ""
+    echo "=== Re Module ==="
+    # 测试字符串是否匹配
+    if (re.test("\\d+", "Hello123")) :
+      echo "字符串包含数字"
+    
+    # 查找所有匹配
+    numbers = re.find_all("\\d+", "a1b2c3")
+    echo "找到的数字: " + numbers
+    
+    # 替换匹配项
+    result = re.replace("\\d+", "X", "a1b2c3")
+    echo "替换后: " + result
+    
+    # 分割字符串
+    parts = re.split("\\s+", "hello   world  test")
+    echo "分割结果: " + parts
+    
+    # 验证邮箱格式
+    email = "user@example.com"
+    if (re.validate("email", email)) :
+      echo "邮箱格式正确: " + email
+    
+    # 使用预定义模式常量
+    echo "邮箱模式: " + re.PATTERN_EMAIL
+    
+    # === Net 模块 ===
+    echo ""
+    echo "=== Net Module ==="
+    # URL 解析
+    url_info = net.parse_url("https://api.example.com/users?id=123")
+    echo "协议: " + url_info["scheme"]
+    echo "主机: " + url_info["hostname"]
+    
+    # URL 编码
+    params = {"name": "张三", "age": "25"}
+    query = net.encode_url(params)
+    echo "编码后: " + query
+    
+    # 构建完整 URL
+    full_url = net.build_url("https://api.example.com/search", {"q": "hpl"})
+    echo "完整URL: " + full_url
+    
+    # HTTP 状态码检查
+    status = 200
+    if (net.is_success(status)) :
+      echo "请求成功"
+    
+    # 使用 HTTP 状态码常量
+    echo "OK状态码: " + net.STATUS_OK
+    echo "Not Found状态码: " + net.STATUS_NOT_FOUND
   }
 
 call: main()
+
+
 ```
 
 

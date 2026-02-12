@@ -1,305 +1,75 @@
-# 简单冒险游戏示例 - 展示HPL文字游戏框架的基本用法
-
-includes:
-  - ../utils/game_utils.hpl
-  - ../utils/interaction.hpl
-  - ../core/player.hpl
-  - ../core/scene.hpl
-  - ../core/game_engine.hpl
+# 简单冒险游戏示例 - 使用 Python 模块版本
+# 这个示例展示了如何使用 hpl_game_framework 的 Python 模块
 
 imports:
-  - time
-  - json
-  - io
-
-classes:
-  AdventureGame:
-    # 冒险游戏类
-    init: () => {
-        this.engine = GameEngine()
-        this.setup_scenes()
-      }
-    
-    # 设置游戏场景
-    setup_scenes: () => {
-        # 场景1: 起始村庄
-        village = Scene("village", "宁静村庄", "你站在一个宁静的小村庄中央。周围是几间茅草屋，村民们忙碌地走来走去。村子的东边有一片茂密的森林，西边是一条通往山脉的小路。")
-        
-        # 添加选择项
-        village.add_simple_choice("前往森林", "forest")
-        village.add_simple_choice("前往山脉", "mountain")
-        village.add_simple_choice("与村民交谈", "village_talk")
-        village.add_simple_choice("查看状态", "check_status")
-        
-        # 场景2: 森林入口
-        forest = Scene("forest", "森林入口", "你来到了森林的边缘。高大的树木遮天蔽日，林间传来奇怪的声响。你注意到地上有一些脚印，似乎有人最近来过这里。")
-        
-        forest.add_simple_choice("深入森林", "deep_forest")
-        forest.add_simple_choice("返回村庄", "village")
-        forest.add_simple_choice("搜索周围", "search_forest")
-        
-        # 场景3: 森林深处
-        deep_forest = Scene("deep_forest", "森林深处", "森林越来越密，光线变得昏暗。突然，你听到了一声低吼！一只野狼从灌木丛中跳了出来！")
-        
-        deep_forest.add_simple_choice("战斗！", "combat_wolf")
-        deep_forest.add_simple_choice("逃跑", "flee_forest")
-        
-        # 场景4: 山脉小路
-        mountain = Scene("mountain", "山脉小路", "山路崎岖难行，但你看到了远处山顶上有一座古老的塔。路边有一个商人正在摆摊。")
-        
-        mountain.add_simple_choice("前往古塔", "tower")
-        mountain.add_simple_choice("与商人交易", "merchant")
-        mountain.add_simple_choice("返回村庄", "village")
-        
-        # 场景5: 古塔
-        tower = Scene("tower", "神秘古塔", "你来到了古塔前。塔门紧闭，上面刻着奇怪的符文。你感觉到这里隐藏着什么秘密...")
-        
-        tower.add_simple_choice("尝试开门", "open_tower")
-        tower.add_simple_choice("返回", "mountain")
-        
-        # 场景6: 胜利
-        victory = Scene("victory", "冒险完成", "你成功解开了古塔的秘密！一道金光闪过，你发现自己获得了传说中的宝藏。恭喜你完成了冒险！")
-        
-        # 注册所有场景
-        this.engine.register_scene(village)
-        this.engine.register_scene(forest)
-        this.engine.register_scene(deep_forest)
-        this.engine.register_scene(mountain)
-        this.engine.register_scene(tower)
-        this.engine.register_scene(victory)
-        
-        # 设置起始场景
-        this.engine.set_start_scene("village")
-      }
-    
-    # 开始游戏
-    start: () => {
-        formatter.clear_screen()
-        formatter.print_title("简 单 冒 险 游 戏")
-        echo ""
-        echo "这是一个使用HPL文字游戏框架创建的示例游戏。"
-        echo ""
-        
-        # 显示主菜单
-        menu_choice = this.engine.show_main_menu()
-        
-        if (menu_choice == "exit") :
-          echo "再见！"
-          return
-        
-        if (menu_choice == "load") :
-          # 显示加载菜单
-          saves = this.engine.save_manager.list_saves()
-          for (i = 0; i < len(saves); i++) :
-            echo saves[i]
-          
-          slot = input_handler.get_int("选择存档 (1-5): ", 1, 5)
-          if (this.engine.continue_from_save(slot)) :
-            return
-          # 加载失败，开始新游戏
-        
-        # 开始新游戏
-        echo ""
-        player_name = input_handler.get_string("请输入你的名字: ", false)
-        
-        this.engine.initialize(player_name)
-        
-        # 给玩家一些初始物品
-        player = this.engine.game_state.player
-        
-        # 创建初始物品
-        potion = Item("healing_potion", "治疗药水", "恢复20点生命值", "consumable", 10)
-        potion.set_stat("heal_amount", 20)
-        
-        sword = Item("rusty_sword", "生锈的剑", "一把旧剑，但还能用", "weapon", 15)
-        sword.set_stat("attack", 3)
-        
-        # 添加到背包
-        player.inventory.add_item(potion)
-        player.inventory.add_item(sword)
-        player.inventory.equip_item(1)  # 装备剑
-        
-        echo ""
-        echo "你获得了："
-        echo "  - 治疗药水 x1"
-        echo "  - 生锈的剑 x1"
-        echo ""
-        echo "剑已自动装备。"
-        echo ""
-        input_handler.pause()
-        
-        # 开始游戏循环
-        this.engine.run()
-      }
-
-  # 扩展场景处理类
-  ExtendedSceneHandler:
-    # 处理特殊场景逻辑
-    handle_village_talk: (engine) => {
-        dialog_system.show_dialog("村民", "你好，旅行者！最近森林里有野狼出没，请小心。听说山顶的古塔里有宝藏，但没人能打开那扇门。")
-        input_handler.pause()
-        engine.game_state.change_scene("village")
-      }
-    
-    handle_check_status: (engine) => {
-        engine.game_state.player.show_status()
-        input_handler.pause()
-        engine.game_state.change_scene("village")
-      }
-    
-    handle_search_forest: (engine) => {
-        player = engine.game_state.player
-        dialog_system.show_narration("你在森林中仔细搜索...")
-        
-        # 随机发现
-        roll = random_gen.random_range(1, 100)
-        if (roll <= 30) :
-          # 发现草药
-          herb = Item("herb", "草药", "可以制作药水的植物", "misc", 5)
-          player.inventory.add_item(herb)
-          dialog_system.show_loot("草药", 1)
-        else :
-          if (roll <= 60) :
-            # 发现金币
-            gold = random_gen.random_range(5, 20)
-            player.inventory.add_gold(gold)
-            dialog_system.show_loot("金币", gold)
-          else :
-            dialog_system.show_narration("你什么也没找到...")
-        
-        input_handler.pause()
-        engine.game_state.change_scene("forest")
-      }
-    
-    handle_combat_wolf: (engine) => {
-        player = engine.game_state.player
-        
-        dialog_system.show_narration("战斗开始！")
-        
-        # 创建野狼
-        wolf_hp = 30
-        wolf_attack = 8
-        
-        while (wolf_hp > 0 && player.is_alive()) :
-          # 显示战斗状态
-          echo ""
-          echo "=== 战斗 ==="
-          echo "野狼 HP: " + str(wolf_hp)
-          echo "你的 HP: " + str(player.hp) + "/" + str(player.max_hp)
-          echo ""
-          echo "1. 攻击"
-          echo "2. 使用物品"
-          echo "3. 逃跑"
-          
-          choice = input_handler.get_int("选择行动: ", 1, 3)
-          
-          if (choice == 1) :
-            # 玩家攻击
-            damage = player.get_attack() + random_gen.random_range(1, 6)
-            wolf_hp = wolf_hp - damage
-            dialog_system.show_combat(player.name, "攻击", "野狼", "造成 " + str(damage) + " 点伤害")
-            
-            if (wolf_hp <= 0) :
-              break
-          
-          if (choice == 2) :
-            # 使用物品（简化）
-            echo "你使用了治疗药水！"
-            player.heal(20)
-          
-          if (choice == 3) :
-            # 逃跑
-            if (random_gen.random_range(1, 100) <= 50) :
-              dialog_system.show_narration("你成功逃跑了！")
-              engine.game_state.change_scene("forest")
-              return
-            else :
-              dialog_system.show_narration("逃跑失败！")
-          
-          # 野狼攻击
-          if (wolf_hp > 0) :
-            damage = wolf_attack - int(player.get_defense() / 2)
-            if (damage < 1) :
-              damage = 1
-            player.take_damage(damage)
-            dialog_system.show_combat("野狼", "攻击", player.name, "造成 " + str(damage) + " 点伤害")
-            
-            if (!player.is_alive()) :
-              dialog_system.show_narration("你被野狼击败了...")
-              engine.game_state.game_over = true
-              return
-        
-        # 战斗胜利
-        echo ""
-        echo "🎉 战斗胜利！"
-        exp_gain = 25
-        gold_gain = random_gen.random_range(10, 30)
-        
-        player.gain_exp(exp_gain)
-        player.inventory.add_gold(gold_gain)
-        
-        dialog_system.show_loot("经验值", exp_gain)
-        dialog_system.show_loot("金币", gold_gain)
-        
-        # 标记已击败野狼
-        engine.game_state.set_flag("wolf_defeated", true)
-        
-        input_handler.pause()
-        engine.game_state.change_scene("deep_forest")
-      }
-    
-    handle_flee_forest: (engine) => {
-        dialog_system.show_narration("你转身就跑，野狼没有追上来。")
-        input_handler.pause()
-        engine.game_state.change_scene("forest")
-      }
-    
-    handle_merchant: (engine) => {
-        player = engine.game_state.player
-        
-        dialog_system.show_dialog("商人", "欢迎，欢迎！看看我有什么好东西吧！")
-        echo ""
-        echo "1. 购买治疗药水 (10金币)"
-        echo "2. 出售物品"
-        echo "3. 离开"
-        
-        choice = input_handler.get_int("选择: ", 1, 3)
-        
-        if (choice == 1) :
-          if (player.inventory.spend_gold(10)) :
-            potion = Item("healing_potion", "治疗药水", "恢复20点生命值", "consumable", 10)
-            potion.set_stat("heal_amount", 20)
-            player.inventory.add_item(potion)
-            dialog_system.show_loot("治疗药水", 1)
-          else :
-            echo "金币不足！"
-          input_handler.pause()
-        
-        engine.game_state.change_scene("mountain")
-      }
-    
-    handle_open_tower: (engine) => {
-        player = engine.game_state.player
-        
-        # 检查是否有钥匙（这里简化处理）
-        if (player.level >= 2 || engine.game_state.check_flag("wolf_defeated")) :
-          dialog_system.show_narration("你用尽全力推开了古塔的大门...")
-          input_handler.pause()
-          engine.game_state.victory = true
-          engine.game_state.change_scene("victory")
-        else :
-          dialog_system.show_narration("门纹丝不动。也许你需要变得更强，或者找到某种钥匙...")
-          input_handler.pause()
-          engine.game_state.change_scene("tower")
-      }
-
-objects:
-  adventure_game: AdventureGame()
-  scene_handler: ExtendedSceneHandler()
+  - game_engine
+  - player
+  - scene
+  - game_utils
+  - interaction
 
 main: () => {
-    # 启动游戏
-    adventure_game.start()
-  }
-
-call: main()
+  # 显示欢迎信息
+  game_utils.print_title("简单冒险游戏")
+  interaction.show_narration("这是一个使用 Python 模块的 HPL 游戏示例。")
+  
+  # 获取玩家名称
+  player_name = interaction.get_string("请输入你的角色名称: ", false)
+  
+  # 创建游戏引擎
+  engine = game_engine.create_game_engine()
+  
+  # 初始化游戏
+  engine.initialize(player_name)
+  
+  # 创建场景
+  forest = scene.create_scene("forest", "迷雾森林", "你站在一片神秘的森林入口。古老的树木高耸入云，雾气在林间缭绕。你听到远处传来奇怪的声音。")
+  cave = scene.create_scene("cave", "幽暗洞穴", "一个阴暗潮湿的洞穴。水滴从洞顶落下，发出滴答声。你感觉到有什么东西在黑暗中注视着你。")
+  village = scene.create_scene("village", "宁静村庄", "一个宁静的小村庄。村民们友好地向你打招呼，铁匠铺传来叮叮当当的敲打声。")
+  
+  # 添加选择项
+  forest.create_choice("进入洞穴探险", "cave", null, null)
+  forest.create_choice("前往村庄", "village", null, null)
+  forest.create_choice("在森林中搜索", null, null, () => {
+    interaction.show_system("你在森林中发现了一些草药！")
+    engine.game_state.player.inventory.add_gold(10)
+    interaction.show_loot("草药", 3)
+  })
+  
+  cave.create_choice("返回森林", "forest", null, null)
+  cave.create_choice("深入洞穴", null, null, () => {
+    interaction.show_combat("玩家", "攻击", "蝙蝠", "命中！造成 5 点伤害")
+    engine.game_state.player.gain_exp(20)
+    interaction.show_system("你获得了 20 点经验值！")
+  })
+  
+  village.create_choice("返回森林", "forest", null, null)
+  village.create_choice("与村民交谈", null, null, () => {
+    interaction.show_dialog("村民", "欢迎来到我们的村庄，旅行者！需要休息吗？")
+    engine.game_state.player.heal(20)
+    interaction.show_stat_change("HP", engine.game_state.player.hp - 20, engine.game_state.player.hp)
+  })
+  
+  # 注册场景
+  engine.register_scene(forest)
+  engine.register_scene(cave)
+  engine.register_scene(village)
+  
+  # 设置起始场景
+  engine.set_start_scene("forest")
+  
+  # 添加一些初始物品
+  sword = player.create_item("sword_001", "生锈的剑", "一把生锈的铁剑，但还能用", "weapon", 50)
+  sword.set_stat("attack", 5)
+  engine.game_state.player.inventory.add_item(sword)
+  
+  potion = player.create_item("potion_001", "生命药水", "恢复 30 点生命值", "consumable", 20)
+  engine.game_state.player.inventory.add_item(potion)
+  
+  # 显示初始状态
+  interaction.pause("按回车键开始游戏...")
+  engine.game_state.player.show_status()
+  
+  # 运行游戏
+  engine.run()
+}
