@@ -43,9 +43,21 @@ HPL_CONFIG_DIR = Path.home() / '.hpl'
 HPL_PACKAGES_DIR = HPL_CONFIG_DIR / 'packages'
 HPL_MODULE_PATHS = [HPL_PACKAGES_DIR]
 
+# FIX: 添加 hpl_game_framework/core/ 和 utils/ 目录到模块搜索路径
+# 这样 HPL 脚本可以导入自定义 Python 模块 (game_engine, player, scene, game_utils, interaction等)
+HPL_FRAMEWORK_CORE_DIR = Path.cwd() / 'hpl_game_framework' / 'core'
+if HPL_FRAMEWORK_CORE_DIR.exists():
+    HPL_MODULE_PATHS.append(HPL_FRAMEWORK_CORE_DIR)
+
+HPL_FRAMEWORK_UTILS_DIR = Path.cwd() / 'hpl_game_framework' / 'utils'
+if HPL_FRAMEWORK_UTILS_DIR.exists():
+    HPL_MODULE_PATHS.append(HPL_FRAMEWORK_UTILS_DIR)
+
+
 # 确保配置目录存在
 HPL_CONFIG_DIR.mkdir(exist_ok=True)
 HPL_PACKAGES_DIR.mkdir(exist_ok=True)
+
 
 
 # 循环导入检测 - 正在加载中的模块集合
