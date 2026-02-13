@@ -20,7 +20,8 @@ main: () => {
   engine = game_engine.create_game_engine()
   
   # 初始化游戏
-  engine.initialize(player_name)
+  game_engine.initialize_game(engine, player_name)
+
   
   # 创建场景
   forest = scene.create_scene("forest", "迷雾森林", "你站在一片神秘的森林入口。古老的树木高耸入云，雾气在林间缭绕。你听到远处传来奇怪的声音。")

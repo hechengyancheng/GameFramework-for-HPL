@@ -477,8 +477,13 @@ def create_save_manager(game_state):
     """创建存档管理器实例"""
     return SaveManager(game_state)
 
+def initialize_game(engine, player_name):
+    """初始化游戏引擎"""
+    return engine.initialize(player_name)
+
 
 # ============ 模块注册 ============
+
 
 HPL_MODULE = HPLModule("game_engine", "游戏引擎核心 - 管理游戏主循环、场景切换、存档系统")
 
@@ -486,6 +491,8 @@ HPL_MODULE = HPLModule("game_engine", "游戏引擎核心 - 管理游戏主循�
 HPL_MODULE.register_function('create_game_engine', create_game_engine, 0, '创建游戏引擎实例')
 HPL_MODULE.register_function('create_game_state', create_game_state, 0, '创建游戏状态实例')
 HPL_MODULE.register_function('create_save_manager', create_save_manager, 1, '创建存档管理器实例')
+HPL_MODULE.register_function('initialize_game', initialize_game, 2, '初始化游戏引擎')
+
 
 # 注册常量
 HPL_MODULE.register_constant('VERSION', "1.0.0", '模块版本')
