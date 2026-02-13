@@ -2,11 +2,11 @@
 # 这个示例展示了如何使用 hpl_game_framework 的 Python 模块
 
 imports:
-  - game_engine
-  - player
-  - scene
-  - game_utils
-  - interaction
+  - ../core/game_engine: game_engine
+  - ../core/player: player
+  - ../core/scene: scene
+  - ../utils/game_utils: game_utils
+  - ../utils/interaction: interaction
 
 main: () => {
   # 显示欢迎信息
