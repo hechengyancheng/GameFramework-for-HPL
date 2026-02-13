@@ -261,8 +261,13 @@ def create_npc(id, name, description):
     """创建NPC"""
     return NPC(id, name, description)
 
+def add_choice(scene, choice):
+    """添加选择项到场景"""
+    scene.add_choice(choice)
+
 
 # ============ 模块注册 ============
+
 
 HPL_MODULE = HPLModule("scene", "场景系统 - 管理游戏场景、选择项、条件判断")
 
@@ -270,6 +275,8 @@ HPL_MODULE = HPLModule("scene", "场景系统 - 管理游戏场景、选择项�
 HPL_MODULE.register_function('create_choice', create_choice, None, '创建选择项')
 HPL_MODULE.register_function('create_scene', create_scene, 3, '创建场景')
 HPL_MODULE.register_function('create_npc', create_npc, 3, '创建NPC')
+HPL_MODULE.register_function('add_choice', add_choice, 2, '添加选择项到场景')
+
 
 # 注册常量
 HPL_MODULE.register_constant('VERSION', "1.0.0", '模块版本')
