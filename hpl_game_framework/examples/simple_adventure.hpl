@@ -2,11 +2,11 @@
 # 这个示例展示了如何使用 hpl_game_framework 的 Python 模块
 
 imports:
-  - game_engine
-  - player
-  - scene
-  - game_utils
-  - interaction
+  - ../core/game_engine: game_engine
+  - ../core/player: player
+  - ../core/scene: scene
+  - ../utils/game_utils: game_utils
+  - ../utils/interaction: interaction
 
 main: () => {
   # 显示欢迎信息
@@ -20,7 +20,8 @@ main: () => {
   engine = game_engine.create_game_engine()
   
   # 初始化游戏
-  engine.initialize(player_name)
+  game_engine.initialize_game(engine, player_name)
+
   
   # 创建场景
   forest = scene.create_scene("forest", "迷雾森林", "你站在一片神秘的森林入口。古老的树木高耸入云，雾气在林间缭绕。你听到远处传来奇怪的声音。")
@@ -28,27 +29,39 @@ main: () => {
   village = scene.create_scene("village", "宁静村庄", "一个宁静的小村庄。村民们友好地向你打招呼，铁匠铺传来叮叮当当的敲打声。")
   
   # 添加选择项
-  forest.create_choice("进入洞穴探险", "cave", null, null)
-  forest.create_choice("前往村庄", "village", null, null)
-  forest.create_choice("在森林中搜索", null, null, () => {
+  choice1 = scene.create_choice("进入洞穴探险", "cave", null, null)
+  scene.add_choice(forest, choice1)
+  
+  choice2 = scene.create_choice("前往村庄", "village", null, null)
+  scene.add_choice(forest, choice2)
+  
+  choice3 = scene.create_choice("在森林中搜索", null, null, () => {
     interaction.show_system("你在森林中发现了一些草药！")
     engine.game_state.player.inventory.add_gold(10)
     interaction.show_loot("草药", 3)
   })
+  scene.add_choice(forest, choice3)
   
-  cave.create_choice("返回森林", "forest", null, null)
-  cave.create_choice("深入洞穴", null, null, () => {
+  choice4 = scene.create_choice("返回森林", "forest", null, null)
+  scene.add_choice(cave, choice4)
+  
+  choice5 = scene.create_choice("深入洞穴", null, null, () => {
     interaction.show_combat("玩家", "攻击", "蝙蝠", "命中！造成 5 点伤害")
     engine.game_state.player.gain_exp(20)
     interaction.show_system("你获得了 20 点经验值！")
   })
+  scene.add_choice(cave, choice5)
   
-  village.create_choice("返回森林", "forest", null, null)
-  village.create_choice("与村民交谈", null, null, () => {
+  choice6 = scene.create_choice("返回森林", "forest", null, null)
+  scene.add_choice(village, choice6)
+  
+  choice7 = scene.create_choice("与村民交谈", null, null, () => {
     interaction.show_dialog("村民", "欢迎来到我们的村庄，旅行者！需要休息吗？")
     engine.game_state.player.heal(20)
     interaction.show_stat_change("HP", engine.game_state.player.hp - 20, engine.game_state.player.hp)
   })
+  scene.add_choice(village, choice7)
+
   
   # 注册场景
   engine.register_scene(forest)
