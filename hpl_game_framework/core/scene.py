@@ -42,7 +42,14 @@ class _Choice:
     
     def execute_action(self, player, game_state):
         if self.action is not None:
-            self.action(player, game_state)
+            # Handle HPLArrowFunction objects from HPL runtime
+            if callable(self.action):
+                self.action(player, game_state)
+            elif hasattr(self.action, 'call') and callable(self.action.call):
+                self.action.call(player, game_state)
+            elif hasattr(self.action, 'call_function') and callable(self.action.call_function):
+                self.action.call_function(player, game_state)
+
     
     def get_display_text(self):
         if not self.enabled:
