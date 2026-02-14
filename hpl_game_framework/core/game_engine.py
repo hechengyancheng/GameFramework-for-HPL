@@ -4,6 +4,7 @@
 ========
 
 管理游戏主循环、场景切换、存档系统。
+所有功能封装为模块级函数，兼容HPL Runtime。
 
 作者: HPL Framework Team
 版本: 1.0.0
@@ -14,7 +15,6 @@ try:
     from hpl_runtime.modules.base import HPLModule
     from hpl_runtime.utils.exceptions import HPLTypeError, HPLValueError, HPLRuntimeError
 except ImportError:
-    # 备用导入（当模块在 HPL 运行时目录外时）
     import sys
     import os
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -25,84 +25,60 @@ import json
 import time
 import os
 
-# ============ 游戏状态管理 ============
+# ============ 内部类定义 ============
 
-class GameState:
-    """游戏状态管理类"""
+class _GameState:
+    """游戏状态管理类（内部使用）"""
     
     def __init__(self):
-        self.scenes = {}              # 场景字典 {id: Scene}
+        self.scenes = {}
         self.current_scene_id = None
         self.player = None
         self.game_over = False
         self.victory = False
-        self.variables = {}           # 游戏变量
-        self.flags = {}               # 游戏标志
-        self.play_time = 0            # 游戏时间（秒）
+        self.variables = {}
+        self.flags = {}
+        self.play_time = 0
         self.start_time = time.time()
         self.save_slot = 1
     
     def register_scene(self, scene):
-        """注册场景"""
         self.scenes[scene.id] = scene
     
     def get_scene(self, scene_id):
-        """获取场景"""
-        if scene_id in self.scenes:
-            return self.scenes[scene_id]
-        return None
+        return self.scenes.get(scene_id)
     
     def change_scene(self, scene_id):
-        """切换场景"""
         if scene_id not in self.scenes:
             print(f"错误：场景 '{scene_id}' 不存在")
             return False
         
-        # 离开当前场景
         if self.current_scene_id is not None:
             current = self.get_scene(self.current_scene_id)
             if current is not None:
                 current.exit(self.player, self)
         
-        # 切换场景
         self.current_scene_id = scene_id
         new_scene = self.get_scene(scene_id)
-        
-        # 进入新场景
         new_scene.enter(self.player, self)
-        
         return True
     
     def set_var(self, key, value):
-        """设置变量"""
         self.variables[key] = value
     
     def get_var(self, key, default_val=None):
-        """获取变量"""
-        if key in self.variables:
-            return self.variables[key]
-        return default_val
+        return self.variables.get(key, default_val)
     
     def set_flag(self, flag, value=None):
-        """设置标志"""
-        if value is None:
-            value = True
-        self.flags[flag] = value
+        self.flags[flag] = value if value is not None else True
     
     def check_flag(self, flag):
-        """检查标志"""
-        if flag in self.flags:
-            return self.flags[flag]
-        return False
+        return self.flags.get(flag, False)
     
     def get_play_time(self):
-        """获取游戏时间"""
-        current = time.time()
-        elapsed = current - self.start_time
-        return elapsed
+        return time.time() - self.start_time
     
     def format_play_time(self):
-        """格式化游戏时间"""
         total_seconds = self.get_play_time()
         hours = int(total_seconds / 3600)
         minutes = int((total_seconds % 3600) / 60)
@@ -117,21 +93,16 @@ class GameState:
         return result
 
 
-# ============ 存档管理器 ============
-
-class SaveManager:
-    """存档管理器"""
+class _SaveManager:
+    """存档管理器（内部使用）"""
     
     def __init__(self, game_state):
         self.game_state = game_state
         self.save_dir = "saves"
     
     def create_save_data(self):
-        """创建存档数据"""
         player = self.game_state.player
-        
-        # 保存玩家数据
-        save_data = {
+        return {
             "player": {
                 "name": player.name,
                 "level": player.level,
@@ -156,11 +127,8 @@ class SaveManager:
             "play_time": self.game_state.get_play_time(),
             "timestamp": time.time()
         }
-        
-        return save_data
     
     def save(self, slot=None):
-        """保存游戏"""
         if slot is None:
             slot = self.game_state.save_slot
         
@@ -168,7 +136,6 @@ class SaveManager:
             save_data = self.create_save_data()
             filename = f"save_{slot}.json"
             
-            # 确保存档目录存在
             if not os.path.exists(self.save_dir):
                 os.makedirs(self.save_dir)
             
@@ -183,7 +150,6 @@ class SaveManager:
             return False
     
     def load(self, slot=None):
-        """加载游戏"""
         if slot is None:
             slot = 1
         
@@ -198,9 +164,7 @@ class SaveManager:
             with open(filepath, 'r', encoding='utf-8') as f:
                 save_data = json.load(f)
             
-            # 恢复游戏状态
             self.restore_save_data(save_data)
-            
             print(f"游戏已从存档 {slot} 加载")
             return True
         except Exception as e:
@@ -208,8 +172,6 @@ class SaveManager:
             return False
     
     def restore_save_data(self, save_data):
-        """恢复存档数据"""
-        # 恢复玩家数据
         player_data = save_data["player"]
         player = self.game_state.player
         
@@ -230,14 +192,12 @@ class SaveManager:
         player.inventory.gold = player_data["inventory_gold"]
         player.stats = player_data["stats"]
         
-        # 恢复游戏状态
         self.game_state.current_scene_id = save_data["current_scene"]
         self.game_state.variables = save_data["variables"]
         self.game_state.flags = save_data["flags"]
         self.game_state.start_time = time.time() - save_data["play_time"]
     
     def list_saves(self):
-        """列出所有存档"""
         saves = []
         for slot in range(1, 6):
             filename = f"save_{slot}.json"
@@ -256,22 +216,18 @@ class SaveManager:
         return saves
 
 
-# ============ 游戏引擎 ============
-
-class GameEngine:
-    """游戏引擎主类"""
+class _GameEngine:
+    """游戏引擎主类（内部使用）"""
     
     def __init__(self):
-        self.game_state = GameState()
-        self.save_manager = SaveManager(self.game_state)
+        self.game_state = _GameState()
+        self.save_manager = _SaveManager(self.game_state)
         self.running = False
         self.debug_mode = False
     
-    def initialize(self, player_name):
+    def initialize(self, player_name, player_module):
         """初始化游戏"""
-        # 创建玩家（需要从player模块导入）
-        from .player import Player
-        player = Player(player_name)
+        player = player_module.create_player(player_name)
         self.game_state.player = player
         
         print("")
@@ -282,46 +238,36 @@ class GameEngine:
         input("按回车键继续...")
     
     def register_scene(self, scene):
-        """注册场景"""
         self.game_state.register_scene(scene)
     
     def set_start_scene(self, scene_id):
-        """设置起始场景"""
         self.game_state.change_scene(scene_id)
     
     def run(self):
-        """游戏主循环"""
         self.running = True
         
         while self.running:
-            # 检查游戏结束条件
             if self.game_state.game_over:
-                self.show_game_over()
+                self._show_game_over()
                 break
             
             if self.game_state.victory:
-                self.show_victory()
+                self._show_victory()
                 break
             
-            # 获取当前场景
             current_scene = self.game_state.get_scene(self.game_state.current_scene_id)
             if current_scene is None:
                 print("错误：当前场景无效")
                 break
             
-            # 显示场景
-            self.clear_screen()
+            self._clear_screen()
             available_choices = current_scene.display(self.game_state.player, self.game_state)
+            self._show_status_bar()
             
-            # 显示玩家状态栏
-            self.show_status_bar()
-            
-            # 获取玩家选择
             print("")
             print("请输入选项编号 (或输入 S保存 L加载 I背包 Q退出): ")
             input_str = input()
             
-            # 处理特殊命令
             if input_str.upper() == "Q":
                 confirm = input("确定要退出游戏吗? (Y/N): ")
                 if confirm.upper() == "Y":
@@ -335,7 +281,7 @@ class GameEngine:
                 continue
             
             if input_str.upper() == "L":
-                self.show_load_menu()
+                self._show_load_menu()
                 continue
             
             if input_str.upper() == "I":
@@ -343,7 +289,6 @@ class GameEngine:
                 input("按回车键继续...")
                 continue
             
-            # 处理场景选择
             try:
                 choice_num = int(input_str)
                 if 1 <= choice_num <= len(available_choices):
@@ -361,22 +306,18 @@ class GameEngine:
         print("感谢游玩！")
         print(f"游戏时间: {self.game_state.format_play_time()}")
     
-    def clear_screen(self):
-        """清屏"""
-        # 使用多个换行模拟清屏
+    def _clear_screen(self):
         print("\n" * 50)
     
-    def show_status_bar(self):
-        """显示状态栏"""
+    def _show_status_bar(self):
         player = self.game_state.player
         print("")
         print(f"[{player.name} | Lv.{player.level} | HP:{player.hp}/{player.max_hp} | MP:{player.mp}/{player.max_mp} | 金币:{player.inventory.gold}]")
         print("[命令: S保存 L加载 I背包 Q退出]")
     
-    def show_game_over(self):
-        """显示游戏结束"""
-        self.clear_screen()
-        self.print_title("游 戏 结 束")
+    def _show_game_over(self):
+        self._clear_screen()
+        self._print_title("游 戏 结 束")
         print("")
         print("你的冒险到此结束...")
         print("")
@@ -384,10 +325,9 @@ class GameEngine:
         print("")
         input("按回车键退出...")
     
-    def show_victory(self):
-        """显示胜利画面"""
-        self.clear_screen()
-        self.print_title("🎉 胜 利 🎉")
+    def _show_victory(self):
+        self._clear_screen()
+        self._print_title("🎉 胜 利 🎉")
         print("")
         print("恭喜你完成了冒险！")
         print("")
@@ -399,21 +339,18 @@ class GameEngine:
         print("")
         input("按回车键退出...")
     
-    def print_title(self, text):
-        """打印标题"""
+    def _print_title(self, text):
         print("")
         print("=" * 50)
-        # 居中显示
         padding = (50 - len(text)) // 2
         left_pad = " " * padding
         print(left_pad + text)
         print("=" * 50)
         print("")
     
-    def show_load_menu(self):
-        """显示加载菜单"""
-        self.clear_screen()
-        self.print_title("加 载 游 戏")
+    def _show_load_menu(self):
+        self._clear_screen()
+        self._print_title("加 载 游 戏")
         print("")
         
         saves = self.save_manager.list_saves()
@@ -431,69 +368,123 @@ class GameEngine:
                     self.save_manager.load(slot)
         except ValueError:
             print("请输入有效的数字")
-    
-    def show_main_menu(self):
-        """显示主菜单"""
-        while True:
-            self.clear_screen()
-            self.print_title("HPL 文字游戏框架")
-            print("")
-            print("  [1] 开始新游戏")
-            print("  [2] 加载游戏")
-            print("  [3] 退出")
-            print("")
-            
-            try:
-                choice = int(input("请选择: "))
-                if choice == 1:
-                    return "new"
-                elif choice == 2:
-                    return "load"
-                elif choice == 3:
-                    return "exit"
-            except ValueError:
-                print("请输入有效的数字")
-    
-    def continue_from_save(self, slot):
-        """从存档继续游戏"""
-        if self.save_manager.load(slot):
-            # 恢复后继续游戏循环
-            self.run()
-            return True
-        return False
 
 
-# ============ 模块级函数 ============
+# ============ 引擎实例管理 ============
+
+_engines = {}
+
+def _get_engine(engine_id):
+    """获取引擎实例"""
+    return _engines.get(engine_id)
+
+def _set_engine(engine_id, engine):
+    """存储引擎实例"""
+    _engines[engine_id] = engine
+
+
+# ============ 模块级函数（HPL可调用的API） ============
 
 def create_game_engine():
     """创建游戏引擎实例"""
-    return GameEngine()
+    engine = _GameEngine()
+    engine_id = f"engine_{id(engine)}"
+    _set_engine(engine_id, engine)
+    return engine_id
 
-def create_game_state():
-    """创建游戏状态实例"""
-    return GameState()
-
-def create_save_manager(game_state):
-    """创建存档管理器实例"""
-    return SaveManager(game_state)
-
-def initialize_game(engine, player_name):
+def initialize_game(engine_id, player_name, player_module):
     """初始化游戏引擎"""
-    return engine.initialize(player_name)
+    engine = _get_engine(engine_id)
+    if engine is None:
+        raise HPLValueError(f"Invalid engine ID: {engine_id}")
+    
+    # 处理 HPLModule 对象或普通 Python 模块
+    if hasattr(player_module, 'call_function'):
+        # HPLModule 对象，使用 call_function 调用 create_player
+        player = player_module.call_function('create_player', [player_name])
+    else:
+        # 普通 Python 模块
+        player = player_module.create_player(player_name)
+    
+    engine.game_state.player = player
+    
+    print("")
+    print(f"欢迎, {player_name}!")
+    print("你的冒险即将开始...")
+    print("")
+    
+    input("按回车键继续...")
+    return None
+
+
+def register_scene(engine_id, scene):
+    """注册场景"""
+    engine = _get_engine(engine_id)
+    if engine is None:
+        raise HPLValueError(f"Invalid engine ID: {engine_id}")
+    engine.register_scene(scene)
+    return None
+
+def set_start_scene(engine_id, scene_id):
+    """设置起始场景"""
+    engine = _get_engine(engine_id)
+    if engine is None:
+        raise HPLValueError(f"Invalid engine ID: {engine_id}")
+    engine.set_start_scene(scene_id)
+    return None
+
+def run_game(engine_id):
+    """运行游戏"""
+    engine = _get_engine(engine_id)
+    if engine is None:
+        raise HPLValueError(f"Invalid engine ID: {engine_id}")
+    engine.run()
+    return None
+
+def get_game_state(engine_id):
+    """获取游戏状态"""
+    engine = _get_engine(engine_id)
+    if engine is None:
+        raise HPLValueError(f"Invalid engine ID: {engine_id}")
+    return engine.game_state
+
+def get_player(engine_id):
+    """获取玩家对象"""
+    engine = _get_engine(engine_id)
+    if engine is None:
+        raise HPLValueError(f"Invalid engine ID: {engine_id}")
+    return engine.game_state.player
+
+def save_game(engine_id, slot=None):
+    """保存游戏"""
+    engine = _get_engine(engine_id)
+    if engine is None:
+        raise HPLValueError(f"Invalid engine ID: {engine_id}")
+    return engine.save_manager.save(slot)
+
+def load_game(engine_id, slot=None):
+    """加载游戏"""
+    engine = _get_engine(engine_id)
+    if engine is None:
+        raise HPLValueError(f"Invalid engine ID: {engine_id}")
+    return engine.save_manager.load(slot)
 
 
 # ============ 模块注册 ============
 
-
 HPL_MODULE = HPLModule("game_engine", "游戏引擎核心 - 管理游戏主循环、场景切换、存档系统")
 
 # 注册函数
-HPL_MODULE.register_function('create_game_engine', create_game_engine, 0, '创建游戏引擎实例')
-HPL_MODULE.register_function('create_game_state', create_game_state, 0, '创建游戏状态实例')
-HPL_MODULE.register_function('create_save_manager', create_save_manager, 1, '创建存档管理器实例')
-HPL_MODULE.register_function('initialize_game', initialize_game, 2, '初始化游戏引擎')
-
+HPL_MODULE.register_function('create_game_engine', create_game_engine, 0, '创建游戏引擎实例，返回引擎ID')
+HPL_MODULE.register_function('initialize_game', initialize_game, 3, '初始化游戏引擎 (engine_id, player_name, player_module)')
+HPL_MODULE.register_function('register_scene', register_scene, 2, '注册场景 (engine_id, scene)')
+HPL_MODULE.register_function('set_start_scene', set_start_scene, 2, '设置起始场景 (engine_id, scene_id)')
+HPL_MODULE.register_function('run_game', run_game, 1, '运行游戏 (engine_id)')
+HPL_MODULE.register_function('get_game_state', get_game_state, 1, '获取游戏状态 (engine_id)')
+HPL_MODULE.register_function('get_player', get_player, 1, '获取玩家对象 (engine_id)')
+HPL_MODULE.register_function('save_game', save_game, None, '保存游戏 (engine_id, slot?)')
+HPL_MODULE.register_function('load_game', load_game, None, '加载游戏 (engine_id, slot?)')
 
 # 注册常量
-HPL_MODULE.register_constant('VERSION', "1.0.0", '模块版本')
+HPL_MODULE.register_constant('VERSION', "2.0.0", '模块版本')
 HPL_MODULE.register_constant('AUTHOR', "HPL Framework Team", '模块作者')
