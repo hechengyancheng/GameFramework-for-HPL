@@ -113,7 +113,8 @@ scenes:
           player.gain_exp(p, 20)
           ui.show_system("你获得了 20 点经验值！")
           # 随机获得物品
-          if (random.random_int(1, 100) > 70) :
+          if (random.randint(1, 100) > 70) :
+
             player.add_item_to_inventory(p, items.sword_001)
             ui.show_loot("生锈的剑", 1)
     

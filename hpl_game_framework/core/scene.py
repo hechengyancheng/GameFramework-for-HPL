@@ -21,6 +21,9 @@ except ImportError:
     from hpl_runtime.modules.base import HPLModule
     from hpl_runtime.utils.exceptions import HPLTypeError, HPLValueError, HPLRuntimeError
 
+import random
+
+
 
 # ============ 内部类定义 ============
 
@@ -136,12 +139,14 @@ class _Choice:
                     'dict': dict,
                     'set': set,
                     'tuple': tuple,
+                    'random': random,
                     'ui': ui,
                     'engine': mock_engine,
                     'engine_id': 'mock_engine_id',
                     'player': player_wrapper,
                     'items': items_container,
                 }
+
 
 
                 try:
