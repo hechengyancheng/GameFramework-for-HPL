@@ -49,52 +49,20 @@ class _Choice:
                     from hpl_game_framework.utils import interaction as ui
                 except ImportError:
                     ui = None
-                
+                try:
+                    from hpl_game_framework.core import game_engine as engine
+                except ImportError:
+                    engine = None
+                try:
+                    from hpl_game_framework.core import player as player_mod
+                except ImportError:
+                    player_mod = None
                 # Create a mock engine object that returns the player directly
                 class MockEngine:
                     @staticmethod
                     def get_player(engine_id):
                         return player
                 mock_engine = MockEngine()
-                
-                # Create player module wrapper that works with the player object
-                class PlayerModuleWrapper:
-                    def __init__(self, player_obj):
-                        self._player = player_obj
-                    
-                    def show_player_status(self, p=None):
-                        if p is None:
-                            p = self._player
-                        return p.show_status()
-                    
-                    def get_player_hp(self, p=None):
-                        if p is None:
-                            p = self._player
-                        return p.hp
-                    
-                    def heal_player(self, p=None, amount=0):
-                        if p is None:
-                            p = self._player
-                        return p.heal(amount)
-                    
-                    def add_gold(self, p=None, amount=0):
-                        if p is None:
-                            p = self._player
-                        return p.inventory.add_gold(amount)
-                    
-                    def gain_exp(self, p=None, amount=0):
-                        if p is None:
-                            p = self._player
-                        return p.gain_exp(amount)
-                    
-                    def add_item_to_inventory(self, p=None, item=None):
-                        if p is None:
-                            p = self._player
-                        if item is not None:
-                            return p.inventory.add_item(item)
-                        return False
-                
-                player_wrapper = PlayerModuleWrapper(player)
                 
                 # Create execution context with common variables
                 context = {
@@ -116,14 +84,16 @@ class _Choice:
                     'ui': ui,
                     'engine': mock_engine,
                     'engine_id': 'mock_engine_id',
-                    'player': player_wrapper,
+                    'player': player_mod,
                 }
+
 
                 try:
                     exec(self.action, context)
                 except Exception as e:
                     print(f"[动作执行错误] {e}")
                 return
+
 
             
             # Handle HPLArrowFunction objects from HPL runtime
