@@ -96,6 +96,29 @@ class _Choice:
                 
                 player_wrapper = PlayerModuleWrapper(player)
                 
+                # Create items container for accessing items by ID
+                class ItemsContainer:
+                    def __getattr__(self, item_id):
+                        # Import player module to create items
+                        try:
+                            from hpl_game_framework.core import player as player_module
+                        except ImportError:
+                            import player as player_module
+                        # Get item data from game_state if available
+                        if hasattr(game_state, 'items') and item_id in game_state.items:
+                            item_data = game_state.items[item_id]
+                            return player_module.create_item(
+                                item_data.get('id', item_id),
+                                item_data.get('name', 'Unknown'),
+                                item_data.get('description', ''),
+                                item_data.get('type', 'misc'),
+                                item_data.get('value', 0)
+                            )
+                        # Return a placeholder item if not found
+                        return player_module.create_item(item_id, item_id, '', 'misc', 0)
+                
+                items_container = ItemsContainer()
+                
                 # Create execution context with common variables
                 context = {
                     'player_obj': player,
@@ -117,7 +140,9 @@ class _Choice:
                     'engine': mock_engine,
                     'engine_id': 'mock_engine_id',
                     'player': player_wrapper,
+                    'items': items_container,
                 }
+
 
                 try:
                     exec(self.action, context)
