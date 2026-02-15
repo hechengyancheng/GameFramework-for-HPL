@@ -174,29 +174,43 @@ main: () => {
       # 添加选择项
       if (scene_data.choices != null) :
         for (choice_data in scene_data.choices) :
-          # 处理动作代码（简化版，实际可能需要更复杂的解析）
-          action_func = null
+          # 处理动作代码 - 直接传递字符串，由 scene.py 执行
+          action_value = null
           try :
             action_value = choice_data["action"]
           catch (err) :
             action_value = null
-          if (action_value != null) :
-            # 这里可以解析action字符串为可执行函数
-            action_func = () => {
-                ui.show_system("执行动作: " + choice_data.text)
-              }
-
-
           
           target = choice_data.target
           if (target == null) :
             target = null
           
-          c = scene.create_choice(choice_data.text, target, null, action_func)
+          c = scene.create_choice(choice_data.text, target, null, action_value)
+
           scene.add_choice(s, c)
+      
+      # 注册 on_enter 回调
+      on_enter_value = null
+      try :
+        on_enter_value = scene_data["on_enter"]
+      catch (err) :
+        on_enter_value = null
+      if (on_enter_value != null) :
+        scene.set_scene_on_enter(scene_data.id, on_enter_value)
+      
+      # 注册 on_exit 回调
+      on_exit_value = null
+      try :
+        on_exit_value = scene_data["on_exit"]
+      catch (err) :
+        on_exit_value = null
+      if (on_exit_value != null) :
+        scene.set_scene_on_exit(scene_data.id, on_exit_value)
+
       
       # 注册场景
       engine.register_scene(engine_id, s)
+
     
     # 设置起始场景
     engine.set_start_scene(engine_id, config.start_scene)

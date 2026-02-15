@@ -220,6 +220,7 @@ class _GameEngine:
     """游戏引擎主类（内部使用）"""
     
     def __init__(self):
+
         self.game_state = _GameState()
         self.save_manager = _SaveManager(self.game_state)
         self.running = False
@@ -370,7 +371,14 @@ class _GameEngine:
             print("请输入有效的数字")
 
 
+# 公共类别名（在类定义之后）
+GameEngine = _GameEngine
+GameState = _GameState
+SaveManager = _SaveManager
+
+
 # ============ 引擎实例管理 ============
+
 
 _engines = {}
 
@@ -391,6 +399,17 @@ def create_game_engine():
     engine_id = f"engine_{id(engine)}"
     _set_engine(engine_id, engine)
     return engine_id
+
+
+def create_game_state():
+    """创建游戏状态实例"""
+    return _GameState()
+
+
+def create_save_manager(game_state):
+    """创建存档管理器实例"""
+    return _SaveManager(game_state)
+
 
 def initialize_game(engine_id, player_name, player_module):
     """初始化游戏引擎"""
