@@ -276,9 +276,33 @@ class _Scene:
                 self.on_exit(player, game_state)
 
 
+class _NPC:
+    """NPC类（内部使用）"""
+    
+    def __init__(self, id, name, description):
+        self.id = id
+        self.name = name
+        self.description = description
+        self.dialog = None
+    
+    def set_dialog(self, dialog):
+        self.dialog = dialog
+    
+    def talk(self, player, game_state):
+        if self.dialog is not None:
+            print(f"{self.name}: {self.dialog}")
+        else:
+            print(f"{self.name}: ...")
+
+
+# 公共类别名（在类定义之后）
+Scene = _Scene
+Choice = _Choice
+NPC = _NPC
 
 
 # ============ 对象实例管理 ============
+
 
 _scenes = {}
 _choices = {}
@@ -314,6 +338,12 @@ def create_choice(text, target_scene, condition=None, action=None):
     choice_id = f"choice_{id(choice)}"
     _set_choice(choice_id, choice)
     return choice
+
+def create_npc(id, name, description):
+    """创建NPC，返回NPC对象"""
+    npc = _NPC(id, name, description)
+    return npc
+
 
 def add_choice(scene, choice):
     """添加选择项到场景"""

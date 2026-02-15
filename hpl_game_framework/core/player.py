@@ -313,7 +313,20 @@ def get_player_gold(player):
     raise HPLTypeError("First argument must be a player object")
 
 
+# 公共类别名（在类定义之后）
+Player = _Player
+Item = _Item
+Inventory = _Inventory
+
+
+# 额外的工厂函数
+def create_inventory(capacity=20):
+    """创建背包实例"""
+    return _Inventory(capacity)
+
+
 # ============ 模块注册 ============
+
 
 HPL_MODULE = HPLModule("player", "玩家角色系统 - 管理玩家属性、背包、状态")
 
