@@ -1,6 +1,6 @@
-# 声明式冒险游戏示例
+# 声明式冒险游戏示例 - 简化版
+# 使用固定输入值，无需交互式输入
 # 展示如何利用YAML的声明式特性简化HPL代码
-# 使用include将游戏拆分为多个模块
 
 imports:
   - ../core/game_engine: engine
@@ -15,17 +15,23 @@ includes:
   - modules/items.hpl
   - modules/scenes.hpl
 
+# 固定输入值配置
+fixed_inputs:
+  player_name: "Hero"
+  class_choice: "1"  # 1=战士, 2=法师, 3=游侠
+
 main: () => {
     # 显示欢迎信息
     ui.show_narration(config.title)
     ui.show_narration(config.description)
     
-    # 获取玩家名称
-    player_name = ui.get_string(player_config.name_prompt, false)
+    # 使用固定值获取玩家名称
+    player_name = fixed_inputs.player_name
+    ui.show_system("玩家名称: " + player_name)
     
-    # 选择职业
+    # 使用固定值选择职业
+    class_choice = fixed_inputs.class_choice
     ui.show_narration("=== 职业选择 ===")
-    class_choice = ui.get_string(player_config.class_selection, false)
     
     # 根据职业选择初始化配置
     selected_class = "default"
@@ -51,7 +57,6 @@ main: () => {
     engine.initialize_game(engine_id, player_name, player)
     
     # 注册所有场景
-
     for (scene_data in scenes.scenes) :
 
       s = scene.create_scene(scene_data.id, scene_data.name, scene_data.description)
