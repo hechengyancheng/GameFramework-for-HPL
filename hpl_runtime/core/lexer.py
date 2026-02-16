@@ -168,8 +168,9 @@ class HPLLexer:
     def _handle_identifier(self, token_line: int, token_column: int) -> Token:
         """处理标识符和关键字，返回对应标记"""
         ident = self.identifier()
-        keywords = {'if', 'else', 'for', 'while', 'try', 'catch', 'finally', 
+        keywords = {'if', 'else', 'elif', 'for', 'while', 'try', 'catch', 'finally', 
                    'return', 'break', 'continue', 'import', 'throw', 'in'}
+
         
         if ident in keywords:
             return Token('KEYWORD', ident, token_line, token_column)
@@ -333,4 +334,3 @@ class HPLLexer:
         
         tokens.append(Token('EOF', None, self.line, self.column))
         return tokens
-
