@@ -34,15 +34,24 @@ class HPLLexer:
         self.current_char: Optional[str] = self.text[0] if self.text else None
         # 行号和列号跟踪
         self.line: int = start_line
+        self.start_column: int = start_column  # 保存起始列号（仅第一行使用）
         self.column: int = start_column - 1  # 减1是因为advance()会先增加column
+        self._is_first_line: bool = True  # 标记是否在第一行
         # 缩进跟踪
         self.indent_stack: list[int] = [0]  # 缩进级别栈，初始为0
         self.at_line_start: bool = True  # 标记是否在行首
 
+
+
     def advance(self) -> None:
         if self.current_char == '\n':
             self.line += 1
-            self.column = 0  # 换行后重置为0，下一个字符会变为1
+            # 只有第一行使用 start_column，后续行从第1列开始
+            if self._is_first_line:
+                self._is_first_line = False
+                self.column = 0  # 下一行从第1列开始（会在advance中+1）
+            else:
+                self.column = 0  # 后续行从第1列开始
         else:
             self.column += 1
         
@@ -51,6 +60,8 @@ class HPLLexer:
             self.current_char = None
         else:
             self.current_char = self.text[self.pos]
+
+
 
     def peek(self) -> Optional[str]:
         """查看下一个字符但不移动位置"""
