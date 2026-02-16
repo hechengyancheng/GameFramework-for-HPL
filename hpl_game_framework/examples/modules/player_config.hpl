@@ -1,6 +1,109 @@
 # ========== 玩家配置 ==========
 player_config:
   name_prompt: "请输入你的角色名称: "
+  
+  # 职业选择
+  class_selection: "请选择你的职业:\n1. 战士 (高HP，擅长近战)\n2. 法师 (高MP，擅长魔法)\n3. 游侠 (平衡型，擅长远程)\n输入数字 (1-3): "
+  
+  # 战士初始配置
+  warrior:
+    description: "身穿重甲的战士，拥有强大的生命力和近战能力"
+    initial_stats:
+      hp: 150
+      max_hp: 150
+      mp: 30
+      max_mp: 30
+      level: 1
+      exp: 0
+      gold: 50
+      attack: 12
+      defense: 8
+      magic: 2
+    initial_items:
+      - id: "sword_001"
+        name: "生锈的剑"
+        description: "一把生锈的铁剑，但还能用"
+        type: "weapon"
+        value: 50
+      - id: "armor_001"
+        name: "皮甲"
+        description: "用野兽皮革制成的护甲，提供基础防护"
+        type: "armor"
+        value: 80
+      - id: "potion_001"
+        name: "生命药水"
+        description: "恢复 30 点生命值"
+        type: "consumable"
+        value: 20
+  
+  # 法师初始配置
+  mage:
+    description: "掌握神秘魔法的法师，拥有强大的魔法攻击力"
+    initial_stats:
+      hp: 80
+      max_hp: 80
+      mp: 100
+      max_mp: 100
+      level: 1
+      exp: 0
+      gold: 50
+      attack: 5
+      defense: 3
+      magic: 15
+    initial_items:
+      - id: "staff_001"
+        name: "魔法杖"
+        description: "一根镶嵌着魔法水晶的法杖，能释放魔法"
+        type: "weapon"
+        value: 150
+      - id: "robe_001"
+        name: "法师袍"
+        description: "绣满符文的长袍，能增强魔法力量"
+        type: "armor"
+        value: 180
+      - id: "potion_002"
+        name: "魔法药水"
+        description: "恢复 30 点魔法值"
+        type: "consumable"
+        value: 25
+  
+  # 游侠初始配置
+  ranger:
+    description: "身手敏捷的游侠，擅长远程攻击和野外生存"
+    initial_stats:
+      hp: 110
+      max_hp: 110
+      mp: 60
+      max_mp: 60
+      level: 1
+      exp: 0
+      gold: 50
+      attack: 10
+      defense: 5
+      magic: 6
+    initial_items:
+      - id: "bow_001"
+        name: "精灵弓"
+        description: "一把轻盈的短弓，适合远程攻击"
+        type: "weapon"
+        value: 130
+      - id: "armor_001"
+        name: "皮甲"
+        description: "用野兽皮革制成的护甲，提供基础防护"
+        type: "armor"
+        value: 80
+      - id: "potion_001"
+        name: "生命药水"
+        description: "恢复 30 点生命值"
+        type: "consumable"
+        value: 20
+      - id: "herb_001"
+        name: "草药"
+        description: "森林中常见的草药，可以卖钱"
+        type: "material"
+        value: 5
+  
+  # 默认配置（向后兼容）
   initial_stats:
     hp: 100
     max_hp: 100
@@ -8,10 +111,19 @@ player_config:
     max_mp: 50
     level: 1
     exp: 0
-    gold: 0
+    gold: 50
+    attack: 8
+    defense: 5
+    magic: 5
+  
   initial_items:
     - id: "potion_001"
       name: "生命药水"
       description: "恢复 30 点生命值"
       type: "consumable"
       value: 20
+    - id: "herb_001"
+      name: "草药"
+      description: "森林中常见的草药，可以卖钱"
+      type: "material"
+      value: 5

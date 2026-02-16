@@ -23,6 +23,27 @@ main: () => {
     # 获取玩家名称
     player_name = ui.get_string(player_config.name_prompt, false)
     
+    # 选择职业
+    ui.show_narration("=== 职业选择 ===")
+    class_choice = ui.get_string(player_config.class_selection, false)
+    
+    # 根据职业选择初始化配置
+    selected_class = "default"
+    if (class_choice == "1") :
+      selected_class = "warrior"
+      ui.show_system("你选择了战士职业！")
+      ui.show_system(player_config.warrior.description)
+    elif (class_choice == "2") :
+      selected_class = "mage"
+      ui.show_system("你选择了法师职业！")
+      ui.show_system(player_config.mage.description)
+    elif (class_choice == "3") :
+      selected_class = "ranger"
+      ui.show_system("你选择了游侠职业！")
+      ui.show_system(player_config.ranger.description)
+    else :
+      ui.show_system("输入无效，使用默认配置。")
+    
     # 创建游戏引擎
     engine_id = engine.create_game_engine()
     
@@ -30,6 +51,7 @@ main: () => {
     engine.initialize_game(engine_id, player_name, player)
     
     # 注册所有场景
+
     for (scene_data in scenes) :
       s = scene.create_scene(scene_data.id, scene_data.name, scene_data.description)
       
@@ -80,10 +102,34 @@ main: () => {
     # 获取玩家对象并添加初始物品
     p = engine.get_player(engine_id)
     
-    # 添加初始物品
-    for (item_data in player_config.initial_items) :
-      item = player.create_item(item_data.id, item_data.name, item_data.description, item_data.type, item_data.value)
-      player.add_item_to_inventory(p, item)
+    # 根据职业添加初始物品和属性
+    class_config = null
+    if (selected_class == "warrior") :
+      class_config = player_config.warrior
+    elif (selected_class == "mage") :
+      class_config = player_config.mage
+    elif (selected_class == "ranger") :
+      class_config = player_config.ranger
+    else :
+      class_config = player_config
+    
+    # 设置职业特定属性
+    if (class_config.initial_stats != null) :
+      player.set_player_stat(p, "hp", class_config.initial_stats.hp)
+      player.set_player_stat(p, "max_hp", class_config.initial_stats.max_hp)
+      player.set_player_stat(p, "mp", class_config.initial_stats.mp)
+      player.set_player_stat(p, "max_mp", class_config.initial_stats.max_mp)
+      player.set_player_stat(p, "gold", class_config.initial_stats.gold)
+      player.set_player_stat(p, "attack", class_config.initial_stats.attack)
+      player.set_player_stat(p, "defense", class_config.initial_stats.defense)
+      player.set_player_stat(p, "magic", class_config.initial_stats.magic)
+    
+    # 添加职业特定初始物品
+    if (class_config.initial_items != null) :
+      for (item_data in class_config.initial_items) :
+        item = player.create_item(item_data.id, item_data.name, item_data.description, item_data.type, item_data.value)
+        player.add_item_to_inventory(p, item)
+
     
     # 显示初始状态
     ui.pause("按回车键开始游戏...")

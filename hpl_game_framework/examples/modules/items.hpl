@@ -21,3 +21,127 @@ items:
     value: 20
     effect:
       heal: 30
+  
+  # ========== 新武器 ==========
+  - id: "sword_002"
+    name: "铁剑"
+    description: "一把锋利的铁剑，比生锈的剑好多了"
+    type: "weapon"
+    value: 120
+    stats:
+      attack: 12
+  
+  - id: "staff_001"
+    name: "魔法杖"
+    description: "一根镶嵌着魔法水晶的法杖，能释放魔法"
+    type: "weapon"
+    value: 150
+    stats:
+      attack: 8
+      magic: 15
+  
+  - id: "bow_001"
+    name: "精灵弓"
+    description: "一把轻盈的短弓，适合远程攻击"
+    type: "weapon"
+    value: 130
+    stats:
+      attack: 10
+  
+  # ========== 防具 ==========
+  - id: "armor_001"
+    name: "皮甲"
+    description: "用野兽皮革制成的护甲，提供基础防护"
+    type: "armor"
+    value: 80
+    stats:
+      defense: 5
+  
+  - id: "armor_002"
+    name: "铁甲"
+    description: "沉重的铁制铠甲，提供优秀的防护"
+    type: "armor"
+    value: 200
+    stats:
+      defense: 12
+  
+  - id: "robe_001"
+    name: "法师袍"
+    description: "绣满符文的长袍，能增强魔法力量"
+    type: "armor"
+    value: 180
+    stats:
+      defense: 3
+      magic: 10
+  
+  # ========== 消耗品 ==========
+  - id: "potion_002"
+    name: "魔法药水"
+    description: "恢复 30 点魔法值"
+    type: "consumable"
+    value: 25
+    effect:
+      restore_mp: 30
+  
+  - id: "potion_003"
+    name: "解毒剂"
+    description: "解除中毒状态"
+    type: "consumable"
+    value: 30
+    effect:
+      cure: "poison"
+  
+  - id: "potion_004"
+    name: "力量药剂"
+    description: "临时增加 5 点攻击力，持续3场战斗"
+    type: "consumable"
+    value: 50
+    effect:
+      buff:
+        stat: "attack"
+        value: 5
+        duration: 3
+  
+  # ========== 任务物品 ==========
+  - id: "key_001"
+    name: "古老钥匙"
+    description: "一把刻有神秘符文的钥匙，似乎能打开某扇门"
+    type: "quest"
+    value: 0
+  
+  - id: "scroll_001"
+    name: "神秘卷轴"
+    description: "记载着古代魔法的卷轴，散发着微弱的光芒"
+    type: "quest"
+    value: 100
+  
+  - id: "scale_001"
+    name: "龙鳞"
+    description: "从巨龙身上掉落的鳞片，极其坚硬且珍贵"
+    type: "material"
+    value: 500
+  
+  # ========== 稀有材料 ==========
+  - id: "crystal_001"
+    name: "魔法水晶"
+    description: "蕴含强大魔力的水晶，是制作魔法物品的材料"
+    type: "material"
+    value: 80
+  
+  - id: "gem_001"
+    name: "远古宝石"
+    description: "散发着神秘光芒的宝石，价值连城"
+    type: "material"
+    value: 300
+  
+  - id: "mushroom_001"
+    name: "发光蘑菇"
+    description: "黑暗沼泽特有的蘑菇，在黑暗中发出幽蓝光芒"
+    type: "material"
+    value: 15
+  
+  - id: "flower_001"
+    name: "月光花"
+    description: "只在月光下绽放的稀有花朵，具有治愈效果"
+    type: "material"
+    value: 40
