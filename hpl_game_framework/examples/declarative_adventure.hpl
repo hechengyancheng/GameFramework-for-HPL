@@ -1,5 +1,6 @@
 # 声明式冒险游戏示例
 # 展示如何利用YAML的声明式特性简化HPL代码
+# 使用include将游戏拆分为多个模块
 
 imports:
   - ../core/game_engine: engine
@@ -7,152 +8,13 @@ imports:
   - ../core/player: player
   - ../utils/interaction: ui
 
-# ========== 游戏配置 ==========
-config:
-  title: "迷雾森林冒险"
-  description: "一个使用声明式语法编写的HPL游戏示例"
-  start_scene: "forest"
-  debug: false
+# 使用include链接各个模块
+includes:
+  - modules/config.hpl
+  - modules/player_config.hpl
+  - modules/items.hpl
+  - modules/scenes.hpl
 
-# ========== 玩家配置 ==========
-player_config:
-  name_prompt: "请输入你的角色名称: "
-  initial_stats:
-    hp: 100
-    max_hp: 100
-    mp: 50
-    max_mp: 50
-    level: 1
-    exp: 0
-    gold: 0
-  initial_items:
-    - id: "potion_001"
-      name: "生命药水"
-      description: "恢复 30 点生命值"
-      type: "consumable"
-      value: 20
-
-# ========== 物品定义 ==========
-items:
-  - id: "sword_001"
-    name: "生锈的剑"
-    description: "一把生锈的铁剑，但还能用"
-    type: "weapon"
-    value: 50
-    stats:
-      attack: 5
-  
-  - id: "herb_001"
-    name: "草药"
-    description: "森林中常见的草药，可以卖钱"
-    type: "material"
-    value: 5
-  
-  - id: "potion_001"
-    name: "生命药水"
-    description: "恢复 30 点生命值"
-    type: "consumable"
-    value: 20
-    effect:
-      heal: 30
-
-# ========== 场景定义 ==========
-scenes:
-  # 迷雾森林
-  - id: "forest"
-    name: "迷雾森林"
-    description: |
-      你站在一片神秘的森林入口。
-      古老的树木高耸入云，雾气在林间缭绕。
-      你听到远处传来奇怪的声音。
-    choices:
-      - text: "进入洞穴探险"
-        target: "cave"
-        condition: null
-      
-      - text: "前往村庄"
-        target: "village"
-        condition: null
-      
-      - text: "在森林中搜索"
-        target: null
-        action: |
-          ui.show_system("你在森林中发现了一些草药！")
-          p = engine.get_player(engine_id)
-          player.add_item_to_inventory(p, items.herb_001)
-          player.add_gold(p, 10)
-          ui.show_loot("草药", 3)
-      
-      - text: "查看状态"
-        target: null
-        action: |
-          p = engine.get_player(engine_id)
-          player.show_player_status(p)
-    
-    on_enter: |
-      ui.show_narration("【迷雾森林】")
-    
-    on_exit: null
-
-  # 幽暗洞穴
-  - id: "cave"
-    name: "幽暗洞穴"
-    description: |
-      一个阴暗潮湿的洞穴。
-      水滴从洞顶落下，发出滴答声。
-      你感觉到有什么东西在黑暗中注视着你。
-    choices:
-      - text: "返回森林"
-        target: "forest"
-      
-      - text: "深入洞穴"
-        target: null
-        action: |
-          ui.show_combat("玩家", "攻击", "蝙蝠", "命中！造成 5 点伤害")
-          p = engine.get_player(engine_id)
-          player.gain_exp(p, 20)
-          ui.show_system("你获得了 20 点经验值！")
-          # 随机获得物品
-          if (random.random_int(1, 100) > 70) :
-            player.add_item_to_inventory(p, items.sword_001)
-            ui.show_loot("生锈的剑", 1)
-    
-    on_enter: |
-      ui.show_narration("【幽暗洞穴】")
-      ui.show_system("这里很暗...你点燃了火把。")
-
-  # 宁静村庄
-  - id: "village"
-    name: "宁静村庄"
-    description: |
-      一个宁静的小村庄。
-      村民们友好地向你打招呼，铁匠铺传来叮叮当当的敲打声。
-    choices:
-      - text: "返回森林"
-        target: "forest"
-      
-      - text: "与村民交谈"
-        target: null
-        action: |
-          ui.show_dialog("村民", "欢迎来到我们的村庄，旅行者！需要休息吗？")
-          p = engine.get_player(engine_id)
-          old_hp = player.get_player_hp(p)
-          player.heal_player(p, 20)
-          new_hp = player.get_player_hp(p)
-          ui.show_stat_change("HP", old_hp, new_hp)
-      
-      - text: "在村庄中探索"
-        target: null
-        action: |
-          ui.show_system("你在村庄中闲逛，发现了5枚金币！")
-          p = engine.get_player(engine_id)
-          player.add_gold(p, 5)
-    
-    on_enter: |
-      ui.show_narration("【宁静村庄】")
-      ui.show_system("村民们向你微笑致意。")
-
-# ========== 游戏逻辑 ==========
 main: () => {
     # 显示欢迎信息
     ui.show_narration(config.title)
@@ -230,5 +92,6 @@ main: () => {
     # 运行游戏
     engine.run_game(engine_id)
   }
+
 
 call: main()

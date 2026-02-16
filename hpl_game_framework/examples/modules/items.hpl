@@ -1,0 +1,23 @@
+# ========== 物品定义 ==========
+items:
+  - id: "sword_001"
+    name: "生锈的剑"
+    description: "一把生锈的铁剑，但还能用"
+    type: "weapon"
+    value: 50
+    stats:
+      attack: 5
+  
+  - id: "herb_001"
+    name: "草药"
+    description: "森林中常见的草药，可以卖钱"
+    type: "material"
+    value: 5
+  
+  - id: "potion_001"
+    name: "生命药水"
+    description: "恢复 30 点生命值"
+    type: "consumable"
+    value: 20
+    effect:
+      heal: 30

@@ -1,0 +1,17 @@
+# ========== 玩家配置 ==========
+player_config:
+  name_prompt: "请输入你的角色名称: "
+  initial_stats:
+    hp: 100
+    max_hp: 100
+    mp: 50
+    max_mp: 50
+    level: 1
+    exp: 0
+    gold: 0
+  initial_items:
+    - id: "potion_001"
+      name: "生命药水"
+      description: "恢复 30 点生命值"
+      type: "consumable"
+      value: 20

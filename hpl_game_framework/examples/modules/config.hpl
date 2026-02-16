@@ -1,0 +1,6 @@
+# ========== 游戏配置 ==========
+config:
+  title: "迷雾森林冒险"
+  description: "一个使用声明式语法编写的HPL游戏示例"
+  start_scene: "forest"
+  debug: false
