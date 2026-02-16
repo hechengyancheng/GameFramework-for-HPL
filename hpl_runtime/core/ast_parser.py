@@ -892,46 +892,55 @@ class HPLASTParser:
             return None
         
         # 检查是否是箭头函数参数列表 (param1, param2, ...) => { ... }
-        # 通过lookahead判断：如果括号内是逗号分隔的标识符，后跟 ) 和 =>
+        # 先进行lookahead检查，避免不必要的回溯
         params: list[str] = []
         is_arrow_function = False
 
-        # 尝试解析参数列表
-        if self.current_token and self.current_token.type == 'IDENTIFIER':
-            # 检查下一个token是否是DOT，如果是则不是箭头函数参数（而是属性访问）
-            next_token = self.peek(1)
-            if next_token and next_token.type == 'DOT':
-                # 这是属性访问表达式，不是箭头函数参数
-                pass
-            elif next_token and next_token.type in ['PLUS', 'MINUS', 'MUL', 'DIV', 'MOD', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE', 'AND', 'OR']:
-                # 如果下一个token是运算符，则这是普通表达式，不是箭头函数参数
-                pass
-            else:
+        # Lookahead检查：从当前位置开始，检查是否是 ( [ident [, ident]*] ) => 模式
+        lookahead_pos = self.pos
+        if lookahead_pos < len(self.tokens) and self.tokens[lookahead_pos].type == 'IDENTIFIER':
+            # 可能是参数列表，继续检查
+            while lookahead_pos < len(self.tokens):
+                token = self.tokens[lookahead_pos]
+                if token.type == 'IDENTIFIER':
+                    lookahead_pos += 1
+                    if lookahead_pos < len(self.tokens):
+                        next_tok = self.tokens[lookahead_pos]
+                        if next_tok.type == 'COMMA':
+                            lookahead_pos += 1
+                            continue
+                        elif next_tok.type == 'RPAREN':
+                            lookahead_pos += 1
+                            if lookahead_pos < len(self.tokens) and self.tokens[lookahead_pos].type == 'ARROW':
+                                is_arrow_function = True
+                            break
+                        else:
+                            break
+                    else:
+                        break
+                else:
+                    break
+        elif lookahead_pos < len(self.tokens) and self.tokens[lookahead_pos].type == 'RPAREN':
+            # 空参数列表 () =>
+            lookahead_pos += 1
+            if lookahead_pos < len(self.tokens) and self.tokens[lookahead_pos].type == 'ARROW':
+                is_arrow_function = True
+
+        if is_arrow_function:
+            # 真正解析参数列表
+            while self.current_token and self.current_token.type == 'IDENTIFIER':
                 params.append(self.current_token.value)
                 self.advance()
-                
-                # 继续解析更多参数
-                while self.current_token and self.current_token.type == 'COMMA':
-                    self.advance()  # 跳过 ','
-                    if self.current_token and self.current_token.type == 'IDENTIFIER':
-                        params.append(self.current_token.value)
-                        self.advance()
-                    else:
-                        # 不是标识符，说明不是箭头函数参数列表
-                        break
-                
-                # 检查是否以 ) 结束，并且后面跟着 =>
-                if self.current_token and self.current_token.type == 'RPAREN':
-                    # 向前看一个token检查是否是 =>
-                    next_token = self.peek(1)
-                    if next_token and next_token.type == 'ARROW':
-                        is_arrow_function = True
-        
-        if is_arrow_function:
-            self.expect('RPAREN')  # 跳过 ')'
+                if self.current_token and self.current_token.type == 'COMMA':
+                    self.advance()
+                else:
+                    break
+            
+            self.expect('RPAREN')
             self.advance()  # 跳过 =>
             body = self.parse_block()
             return ArrowFunction(params, body, line, column)
+
         
         # 不是箭头函数，作为普通括号表达式解析
         expr = self.parse_expression()
