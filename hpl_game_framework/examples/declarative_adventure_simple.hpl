@@ -57,7 +57,8 @@ main: () => {
     engine.initialize_game(engine_id, player_name, player)
     
     # 注册所有场景
-    for (scene_data in scenes.scenes) :
+    for (scene_data in scenes) :
+
 
       s = scene.create_scene(scene_data.id, scene_data.name, scene_data.description)
       

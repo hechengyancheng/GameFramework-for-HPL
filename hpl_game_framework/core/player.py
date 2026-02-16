@@ -312,8 +312,94 @@ def get_player_gold(player):
         return player.inventory.gold
     raise HPLTypeError("First argument must be a player object")
 
+def set_player_stat(player, stat_name, value):
+    """设置玩家属性"""
+    if isinstance(player, _Player):
+        if stat_name == "hp":
+            player.hp = value
+        elif stat_name == "max_hp":
+            player.max_hp = value
+        elif stat_name == "mp":
+            player.mp = value
+        elif stat_name == "max_mp":
+            player.max_mp = value
+        elif stat_name == "gold":
+            player.inventory.gold = value
+        elif stat_name == "attack":
+            player.strength = value
+        elif stat_name == "defense":
+            player.vitality = value
+        elif stat_name == "magic":
+            player.intelligence = value
+        else:
+            # 其他属性存入stats字典
+            player.stats[stat_name] = value
+    else:
+        raise HPLTypeError("First argument must be a player object")
+    return None
+
+def get_player_stat(player, stat_name, default_val=None):
+    """获取玩家属性"""
+    if isinstance(player, _Player):
+        if stat_name == "hp":
+            return player.hp
+        elif stat_name == "max_hp":
+            return player.max_hp
+        elif stat_name == "mp":
+            return player.mp
+        elif stat_name == "max_mp":
+            return player.max_mp
+        elif stat_name == "gold":
+            return player.inventory.gold
+        elif stat_name == "attack":
+            return player.strength
+        elif stat_name == "defense":
+            return player.vitality
+        elif stat_name == "magic":
+            return player.intelligence
+        else:
+            return player.stats.get(stat_name, default_val)
+    raise HPLTypeError("First argument must be a player object")
+
+def damage_player(player, amount):
+    """对玩家造成伤害"""
+    if isinstance(player, _Player):
+        player.hp -= amount
+        if player.hp < 0:
+            player.hp = 0
+    else:
+        raise HPLTypeError("First argument must be a player object")
+    return None
+
+def restore_mp(player, amount):
+    """恢复玩家MP"""
+    if isinstance(player, _Player):
+        player.mp += amount
+        if player.mp > player.max_mp:
+            player.mp = player.max_mp
+    else:
+        raise HPLTypeError("First argument must be a player object")
+    return None
+
+def deduct_gold(player, amount):
+    """扣除玩家金币"""
+    if isinstance(player, _Player):
+        player.inventory.gold -= amount
+        if player.inventory.gold < 0:
+            player.inventory.gold = 0
+    else:
+        raise HPLTypeError("First argument must be a player object")
+    return None
+
+def get_inventory(player):
+    """获取玩家背包"""
+    if isinstance(player, _Player):
+        return player.inventory.items
+    raise HPLTypeError("First argument must be a player object")
+
 
 # 公共类别名（在类定义之后）
+
 Player = _Player
 Item = _Item
 Inventory = _Inventory
@@ -346,7 +432,14 @@ HPL_MODULE.register_function('get_player_hp', get_player_hp, 1, '获取玩家HP 
 HPL_MODULE.register_function('get_player_max_hp', get_player_max_hp, 1, '获取玩家最大HP (player)')
 HPL_MODULE.register_function('get_player_level', get_player_level, 1, '获取玩家等级 (player)')
 HPL_MODULE.register_function('get_player_gold', get_player_gold, 1, '获取玩家金币 (player)')
+HPL_MODULE.register_function('set_player_stat', set_player_stat, 3, '设置玩家属性 (player, stat_name, value)')
+HPL_MODULE.register_function('get_player_stat', get_player_stat, None, '获取玩家属性 (player, stat_name, default?)')
+HPL_MODULE.register_function('damage_player', damage_player, 2, '对玩家造成伤害 (player, amount)')
+HPL_MODULE.register_function('restore_mp', restore_mp, 2, '恢复玩家MP (player, amount)')
+HPL_MODULE.register_function('deduct_gold', deduct_gold, 2, '扣除玩家金币 (player, amount)')
+HPL_MODULE.register_function('get_inventory', get_inventory, 1, '获取玩家背包 (player)')
 
 # 注册常量
+
 HPL_MODULE.register_constant('VERSION', "2.0.0", '模块版本')
 HPL_MODULE.register_constant('AUTHOR', "HPL Framework Team", '模块作者')
