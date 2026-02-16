@@ -45,23 +45,25 @@ class _Choice:
     
     def execute_action(self, player, game_state):
         if self.action is not None:
-            # Handle string type action (HPL code block)
+            # 处理字符串类型的动作（HPL代码块）
             if isinstance(self.action, str):
-                # Import modules for execution context
+                # 导入执行上下文所需的模块
                 try:
                     from hpl_game_framework.utils import interaction as ui
                 except ImportError:
                     ui = None
                 
-                # Create a mock engine object that returns the player directly
+                # 创建模拟引擎对象，直接返回玩家对象
+
                 class MockEngine:
                     @staticmethod
                     def get_player(engine_id):
                         return player
                 mock_engine = MockEngine()
                 
-                # Create player module wrapper that works with the player object
+                # 创建玩家模块包装器，用于与玩家对象交互
                 class PlayerModuleWrapper:
+
                     def __init__(self, player_obj):
                         self._player = player_obj
                     
@@ -99,8 +101,9 @@ class _Choice:
                 
                 player_wrapper = PlayerModuleWrapper(player)
                 
-                # Create items container for accessing items by ID
+                # 创建物品容器，用于通过ID访问物品
                 class ItemsContainer:
+
                     def __getattr__(self, item_id):
                         # Import player module to create items
                         try:
@@ -122,8 +125,9 @@ class _Choice:
                 
                 items_container = ItemsContainer()
                 
-                # Create execution context with common variables
+                # 创建包含常用变量的执行上下文
                 context = {
+
                     'player_obj': player,
                     'game_state': game_state,
                     'print': print,
@@ -156,8 +160,9 @@ class _Choice:
                 return
 
             
-            # Handle HPLArrowFunction objects from HPL runtime
+            # 处理来自HPL运行时的HPLArrowFunction对象
             if callable(self.action):
+
                 self.action(player, game_state)
             elif hasattr(self.action, 'call') and callable(self.action.call):
                 self.action.call(player, game_state)
@@ -261,13 +266,14 @@ class _Scene:
         self.visited = True
         player.location = self.id
         if self.on_enter is not None:
-            # Handle string type callback (HPL code block)
+            # 处理字符串类型的回调（HPL代码块）
             if isinstance(self.on_enter, str):
-                # Import ui module for execution context
+                # 导入UI模块用于执行上下文
                 try:
                     from hpl_game_framework.utils import interaction as ui
                 except ImportError:
                     ui = None
+
                 context = {
                     'player': player,
                     'game_state': game_state,
@@ -284,13 +290,14 @@ class _Scene:
     
     def exit(self, player, game_state):
         if self.on_exit is not None:
-            # Handle string type callback (HPL code block)
+            # 处理字符串类型的回调（HPL代码块）
             if isinstance(self.on_exit, str):
-                # Import ui module for execution context
+                # 导入UI模块用于执行上下文
                 try:
                     from hpl_game_framework.utils import interaction as ui
                 except ImportError:
                     ui = None
+
                 context = {
                     'player': player,
                     'game_state': game_state,
@@ -380,61 +387,69 @@ def add_choice(scene, choice):
     if isinstance(scene, _Scene):
         scene.add_choice(choice)
     else:
-        raise HPLTypeError("First argument must be a scene object")
+        raise HPLTypeError("第一个参数必须是场景对象")
     return None
+
 
 def set_scene_description(scene_id, description):
     """设置场景描述"""
     scene = _get_scene(scene_id)
     if scene is None:
-        raise HPLValueError(f"Scene not found: {scene_id}")
+        raise HPLValueError(f"场景未找到: {scene_id}")
     scene.description = description
     return None
+
 
 def add_scene_exit(scene_id, direction, target_scene_id):
     """添加场景出口"""
     scene = _get_scene(scene_id)
     if scene is None:
-        raise HPLValueError(f"Scene not found: {scene_id}")
+        raise HPLValueError(f"场景未找到: {scene_id}")
     scene.exits[direction] = target_scene_id
     return None
+
 
 def get_scene_exits(scene_id):
     """获取场景出口"""
     scene = _get_scene(scene_id)
     if scene is None:
-        raise HPLValueError(f"Scene not found: {scene_id}")
+        raise HPLValueError(f"场景未找到: {scene_id}")
     return scene.exits
+
 
 def set_scene_on_enter(scene_id, callback):
     """设置进入场景时的回调"""
     scene = _get_scene(scene_id)
     if scene is None:
-        raise HPLValueError(f"Scene not found: {scene_id}")
+        raise HPLValueError(f"场景未找到: {scene_id}")
     scene.on_enter = callback
     return None
+
 
 def set_scene_on_exit(scene_id, callback):
     """设置离开场景时的回调"""
     scene = _get_scene(scene_id)
     if scene is None:
-        raise HPLValueError(f"Scene not found: {scene_id}")
+        raise HPLValueError(f"场景未找到: {scene_id}")
     scene.on_exit = callback
     return None
+
 
 def display_scene(scene_id, player, game_state):
     """显示场景"""
     scene = _get_scene(scene_id)
     if scene is None:
-        raise HPLValueError(f"Scene not found: {scene_id}")
+        raise HPLValueError(f"场景未找到: {scene_id}")
     return scene.display(player, game_state)
+
 
 def make_choice(scene_id, choice_index, player, game_state):
     """执行选择"""
     scene = _get_scene(scene_id)
     if scene is None:
-        raise HPLValueError(f"Scene not found: {scene_id}")
+        raise HPLValueError(f"场景未找到: {scene_id}")
     return scene.make_choice(choice_index, player, game_state)
+
 
 
 # ============ 模块注册 ============
