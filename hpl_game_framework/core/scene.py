@@ -98,8 +98,48 @@ class _Choice:
                         if item is not None:
                             return p.inventory.add_item(item)
                         return False
+                    
+                    def damage_player(self, p=None, amount=0):
+                        if p is None:
+                            p = self._player
+                        p.hp -= amount
+                        if p.hp < 0:
+                            p.hp = 0
+                        return p.hp
+                    
+                    def get_player_gold(self, p=None):
+                        if p is None:
+                            p = self._player
+                        return p.inventory.gold
+                    
+                    def get_inventory(self, p=None):
+                        if p is None:
+                            p = self._player
+                        return p.inventory.items
+                    
+                    def restore_mp(self, p=None, amount=0):
+                        if p is None:
+                            p = self._player
+                        p.mp += amount
+                        if p.mp > p.max_mp:
+                            p.mp = p.max_mp
+                        return p.mp
+                    
+                    def deduct_gold(self, p=None, amount=0):
+                        if p is None:
+                            p = self._player
+                        p.inventory.gold -= amount
+                        if p.inventory.gold < 0:
+                            p.inventory.gold = 0
+                        return p.inventory.gold
+                    
+                    def get_player_mp(self, p=None):
+                        if p is None:
+                            p = self._player
+                        return p.mp
                 
                 player_wrapper = PlayerModuleWrapper(player)
+
                 
                 # 创建物品容器，用于通过ID访问物品
                 class ItemsContainer:
