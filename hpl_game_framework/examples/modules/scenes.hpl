@@ -465,10 +465,71 @@ scenes:
         target: null
         action: |
           p = engine.get_player(engine_id)
-          ui.show_system("商人看了看你的材料...")
-          ui.show_dialog("商人", "我可以收购草药、蘑菇、水晶等材料。")
-          ui.show_system("（出售功能：每个草药5金币，蘑菇15金币，水晶80金币）")
-          # 这里可以实现具体的出售逻辑
+          inv = player.get_inventory(p)
+          
+          # 统计各类材料数量
+          herb_count = 0
+          mushroom_count = 0
+          crystal_count = 0
+          flower_count = 0
+          gem_count = 0
+          scale_count = 0
+          total_value = 0
+          
+          for (item in inv) :
+            if (item.id == "herb_001") :
+              herb_count = herb_count + 1
+              total_value = total_value + 5
+            elif (item.id == "mushroom_001") :
+              mushroom_count = mushroom_count + 1
+              total_value = total_value + 15
+            elif (item.id == "crystal_001") :
+              crystal_count = crystal_count + 1
+              total_value = total_value + 80
+            elif (item.id == "flower_001") :
+              flower_count = flower_count + 1
+              total_value = total_value + 40
+            elif (item.id == "gem_001") :
+              gem_count = gem_count + 1
+              total_value = total_value + 300
+            elif (item.id == "scale_001") :
+              scale_count = scale_count + 1
+              total_value = total_value + 500
+          
+          # 显示材料清单
+          ui.show_system("=== 材料出售清单 ===")
+          ui.show_system("草药 x" + str(herb_count) + " - 单价5金币")
+          ui.show_system("发光蘑菇 x" + str(mushroom_count) + " - 单价15金币")
+          ui.show_system("魔法水晶 x" + str(crystal_count) + " - 单价80金币")
+          ui.show_system("月光花 x" + str(flower_count) + " - 单价40金币")
+          ui.show_system("远古宝石 x" + str(gem_count) + " - 单价300金币")
+          ui.show_system("龙鳞 x" + str(scale_count) + " - 单价500金币")
+          ui.show_system("====================")
+          ui.show_system("预计总价值：" + str(total_value) + "金币")
+          
+          # 执行出售
+          if (total_value > 0) :
+            ui.show_dialog("商人", "这些材料我全收了，给你" + str(total_value) + "金币！")
+
+            
+            # 移除所有材料并添加金币
+            items_to_remove = []
+            for (item in inv) :
+              if (item.id == "herb_001" || item.id == "mushroom_001" || item.id == "crystal_001" || item.id == "flower_001" || item.id == "gem_001" || item.id == "scale_001") :
+                items_to_remove = items_to_remove + [item]
+
+
+            
+            for (item in items_to_remove) :
+              player.remove_item_from_inventory(p, item)
+            
+            player.add_gold(p, total_value)
+            ui.show_system("出售成功！获得" + str(total_value) + "金币！")
+            ui.show_loot("金币", total_value)
+
+          else :
+            ui.show_dialog("商人", "你身上没有可以出售的材料啊...")
+
       
       - text: "与商人交谈"
         target: null

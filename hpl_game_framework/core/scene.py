@@ -98,7 +98,12 @@ def _convert_hpl_to_python(hpl_code):
         line = re_module.sub(r'\btrue\b', 'True', line)
         line = re_module.sub(r'\bnull\b', 'None', line)
         
+        # 转换 || -> or, && -> and (HPL逻辑运算符转Python)
+        line = re_module.sub(r'\|\|', 'or', line)
+        line = re_module.sub(r'&&', 'and', line)
+        
         result_lines.append(line)
+
     
     return '\n'.join(result_lines)
 
