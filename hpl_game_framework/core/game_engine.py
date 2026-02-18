@@ -102,6 +102,19 @@ class _SaveManager:
     
     def create_save_data(self):
         player = self.game_state.player
+        # 序列化背包物品
+        inventory_items = []
+        for item in player.inventory.items:
+            inventory_items.append({
+                "id": item.id,
+                "name": item.name,
+                "description": item.description,
+                "type": item.type,
+                "value": item.value,
+                "quantity": item.quantity,
+                "equipped": item.equipped,
+                "stats": item.stats
+            })
         return {
             "player": {
                 "name": player.name,
@@ -119,8 +132,10 @@ class _SaveManager:
                 "status": player.status,
                 "location": player.location,
                 "inventory_gold": player.inventory.gold,
+                "inventory_items": inventory_items,
                 "stats": player.stats
             },
+
             "current_scene": self.game_state.current_scene_id,
             "variables": self.game_state.variables,
             "flags": self.game_state.flags,
@@ -210,7 +225,26 @@ class _SaveManager:
         player.inventory.gold = player_data["inventory_gold"]
         player.stats = player_data["stats"]
         
+        # 恢复背包物品
+        player.inventory.items = []
+        if "inventory_items" in player_data:
+            # 动态导入 player 模块以获取 _Item 类
+            from hpl_game_framework.core import player as player_module
+            for item_data in player_data["inventory_items"]:
+                item = player_module._Item(
+                    item_data["id"],
+                    item_data["name"],
+                    item_data["description"],
+                    item_data["type"],
+                    item_data["value"]
+                )
+                item.quantity = item_data.get("quantity", 1)
+                item.equipped = item_data.get("equipped", False)
+                item.stats = item_data.get("stats", {})
+                player.inventory.items.append(item)
+        
         self.game_state.current_scene_id = save_data["current_scene"]
+
         self.game_state.variables = save_data["variables"]
         self.game_state.flags = save_data["flags"]
         self.game_state.start_time = time.time() - save_data["play_time"]
