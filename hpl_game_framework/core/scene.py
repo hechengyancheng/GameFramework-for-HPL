@@ -27,6 +27,82 @@ import random
 
 # ============ 内部类定义 ============
 
+def _convert_hpl_to_python(hpl_code):
+    """将HPL语法转换为有效的Python语法"""
+    import re
+    
+    lines = hpl_code.split('\n')
+    result_lines = []
+    
+    for line in lines:
+        original_line = line
+        # 去除行首空格用于分析
+        stripped = line.lstrip()
+        indent = line[:len(line) - len(stripped)]
+        
+        # 转换 if (condition) : -> if condition:
+        if stripped.startswith('if ('):
+            # 匹配 if (condition) : 格式
+            match = re.match(r'if\s*\((.*?)\)\s*:', stripped)
+            if match:
+                condition = match.group(1)
+                stripped = f'if {condition}:'
+                line = indent + stripped
+        
+        # 转换 elif (condition) : -> elif condition:
+        elif stripped.startswith('elif ('):
+            match = re.match(r'elif\s*\((.*?)\)\s*:', stripped)
+            if match:
+                condition = match.group(1)
+                stripped = f'elif {condition}:'
+                line = indent + stripped
+        
+        # 转换 for (var in iterable) : -> for var in iterable:
+        elif stripped.startswith('for ('):
+            match = re.match(r'for\s*\((.*?)\)\s*:', stripped)
+            if match:
+                loop_expr = match.group(1)
+                stripped = f'for {loop_expr}:'
+                line = indent + stripped
+        
+        # 转换 while (condition) : -> while condition:
+        elif stripped.startswith('while ('):
+            match = re.match(r'while\s*\((.*?)\)\s*:', stripped)
+            if match:
+                condition = match.group(1)
+                stripped = f'while {condition}:'
+                line = indent + stripped
+        
+        # 转换 catch (err) : -> except Exception as err:
+        elif stripped.startswith('catch ('):
+            match = re.match(r'catch\s*\((.*?)\)\s*:', stripped)
+            if match:
+                var_name = match.group(1)
+                stripped = f'except Exception as {var_name}:'
+                line = indent + stripped
+        
+        # 转换 try : -> try:
+        elif stripped.startswith('try :'):
+            stripped = 'try:'
+            line = indent + stripped
+        
+        # 转换 else : -> else:
+        elif stripped.startswith('else :'):
+            stripped = 'else:'
+            line = indent + stripped
+        
+        # 转换 false -> False, true -> True, null -> None
+        # 使用单词边界确保只替换完整的标识符
+        import re as re_module
+        line = re_module.sub(r'\bfalse\b', 'False', line)
+        line = re_module.sub(r'\btrue\b', 'True', line)
+        line = re_module.sub(r'\bnull\b', 'None', line)
+        
+        result_lines.append(line)
+    
+    return '\n'.join(result_lines)
+
+
 class _Choice:
     """选择项类（内部使用）"""
     
@@ -47,6 +123,9 @@ class _Choice:
         if self.action is not None:
             # 处理字符串类型的动作（HPL代码块）
             if isinstance(self.action, str):
+                # 转换HPL语法为Python语法
+                python_code = _convert_hpl_to_python(self.action)
+
                 # 导入执行上下文所需的模块
                 try:
                     from hpl_game_framework.utils import interaction as ui
@@ -194,10 +273,11 @@ class _Choice:
 
 
                 try:
-                    exec(self.action, context)
+                    exec(python_code, context)
                 except Exception as e:
                     print(f"[动作执行错误] {e}")
                 return
+
 
             
             # 处理来自HPL运行时的HPLArrowFunction对象
@@ -308,6 +388,9 @@ class _Scene:
         if self.on_enter is not None:
             # 处理字符串类型的回调（HPL代码块）
             if isinstance(self.on_enter, str):
+                # 转换HPL语法为Python语法
+                python_code = _convert_hpl_to_python(self.on_enter)
+                
                 # 导入UI模块用于执行上下文
                 try:
                     from hpl_game_framework.utils import interaction as ui
@@ -322,16 +405,20 @@ class _Scene:
                     'ui': ui,
                 }
                 try:
-                    exec(self.on_enter, context)
+                    exec(python_code, context)
                 except Exception as e:
                     print(f"[on_enter执行错误] {e}")
             elif callable(self.on_enter):
                 self.on_enter(player, game_state)
+
     
     def exit(self, player, game_state):
         if self.on_exit is not None:
             # 处理字符串类型的回调（HPL代码块）
             if isinstance(self.on_exit, str):
+                # 转换HPL语法为Python语法
+                python_code = _convert_hpl_to_python(self.on_exit)
+                
                 # 导入UI模块用于执行上下文
                 try:
                     from hpl_game_framework.utils import interaction as ui
@@ -346,11 +433,12 @@ class _Scene:
                     'ui': ui,
                 }
                 try:
-                    exec(self.on_exit, context)
+                    exec(python_code, context)
                 except Exception as e:
                     print(f"[on_exit执行错误] {e}")
             elif callable(self.on_exit):
                 self.on_exit(player, game_state)
+
 
 
 class _NPC:
