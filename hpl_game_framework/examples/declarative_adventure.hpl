@@ -15,46 +15,9 @@ includes:
   - modules/items.hpl
   - modules/scenes.hpl
 
-main: () => {
-    # 显示欢迎信息
-    ui.show_narration(config.title)
-    ui.show_narration(config.description)
-    
-    # 获取玩家名称
-    player_name = ui.get_string(player_config.name_prompt, false)
-    
-    # 选择职业
-    ui.show_narration("=== 职业选择 ===")
-    class_choice = ui.get_string(player_config.class_selection, false)
-    
-    # 根据职业选择初始化配置
-    selected_class = "default"
-    if (class_choice == "1") :
-      selected_class = "warrior"
-      ui.show_system("你选择了战士职业！")
-      ui.show_system(player_config.warrior.description)
-    elif (class_choice == "2") :
-      selected_class = "mage"
-      ui.show_system("你选择了法师职业！")
-      ui.show_system(player_config.mage.description)
-    elif (class_choice == "3") :
-      selected_class = "ranger"
-      ui.show_system("你选择了游侠职业！")
-      ui.show_system(player_config.ranger.description)
-    else :
-      ui.show_system("输入无效，使用默认配置。")
-    
-    # 创建游戏引擎
-    engine_id = engine.create_game_engine()
-    
-    # 初始化游戏
-    engine.initialize_game(engine_id, player_name, player)
-    
-    # 注册所有场景
-
+# 辅助函数：注册所有场景
+register_all_scenes: (engine_id) => {
     for (scene_data in scenes) :
-
-
       s = scene.create_scene(scene_data.id, scene_data.name, scene_data.description)
       
       # 添加选择项
@@ -96,14 +59,10 @@ main: () => {
       
       # 注册场景
       engine.register_scene(engine_id, s)
+}
 
-    
-    # 设置起始场景
-    engine.set_start_scene(engine_id, config.start_scene)
-    
-    # 获取玩家对象并添加初始物品
-    p = engine.get_player(engine_id)
-    
+# 辅助函数：根据职业初始化玩家
+init_player_by_class: (p, selected_class) => {
     # 根据职业添加初始物品和属性
     class_config = null
     if (selected_class == "warrior") :
@@ -131,7 +90,90 @@ main: () => {
       for (item_data in class_config.initial_items) :
         item = player.create_item(item_data.id, item_data.name, item_data.description, item_data.type, item_data.value)
         player.add_item_to_inventory(p, item)
+}
 
+main: () => {
+    # 显示欢迎信息
+    ui.show_narration(config.title)
+    ui.show_narration(config.description)
+    
+    # ===== 新增：开始菜单 =====
+    ui.show_narration("=== 开始菜单 ===")
+    ui.show_narration("1. 开始新游戏")
+    ui.show_narration("2. 加载存档")
+    
+    menu_choice = ui.get_string("请选择 (1-2): ", false)
+    
+    # 如果选择加载存档
+    if (menu_choice == "2") : {
+        ui.show_system("正在准备加载存档...")
+        
+        # 创建游戏引擎（不初始化玩家）
+        engine_id = engine.create_game_engine()
+        
+        # 注册所有场景
+        register_all_scenes(engine_id)
+        
+        # 尝试加载存档（这会创建玩家对象）
+        load_result = engine.load_game(engine_id, null)
+        
+        if (load_result) : {
+            # 加载成功，设置起始场景并运行游戏
+            ui.show_system("存档加载成功！")
+            engine.set_start_scene(engine_id, config.start_scene)
+            ui.pause("按回车键继续...")
+            engine.run_game(engine_id)
+            return null  # 结束main函数
+        } else : {
+            ui.show_system("没有可用的存档，将开始新游戏...")
+            ui.pause("按回车键继续...")
+            # 继续执行下面的新游戏流程
+        }
+    }
+
+    
+    # ===== 原有的新游戏流程 =====
+    # 获取玩家名称
+    player_name = ui.get_string(player_config.name_prompt, false)
+    
+    # 选择职业
+    ui.show_narration("=== 职业选择 ===")
+    class_choice = ui.get_string(player_config.class_selection, false)
+    
+    # 根据职业选择初始化配置
+    selected_class = "default"
+    if (class_choice == "1") :
+      selected_class = "warrior"
+      ui.show_system("你选择了战士职业！")
+      ui.show_system(player_config.warrior.description)
+    elif (class_choice == "2") :
+      selected_class = "mage"
+      ui.show_system("你选择了法师职业！")
+      ui.show_system(player_config.mage.description)
+    elif (class_choice == "3") :
+      selected_class = "ranger"
+      ui.show_system("你选择了游侠职业！")
+      ui.show_system(player_config.ranger.description)
+    else :
+      ui.show_system("输入无效，使用默认配置。")
+    
+    # 创建游戏引擎
+    engine_id = engine.create_game_engine()
+    
+    # 初始化游戏
+    engine.initialize_game(engine_id, player_name, player)
+    
+    # 注册所有场景
+    register_all_scenes(engine_id)
+    
+    # 设置起始场景
+    engine.set_start_scene(engine_id, config.start_scene)
+    
+    # 获取玩家对象并添加初始物品
+    p = engine.get_player(engine_id)
+    
+    # 根据职业初始化玩家
+    init_player_by_class(p, selected_class)
     
     # 显示初始状态
     ui.pause("按回车键开始游戏...")

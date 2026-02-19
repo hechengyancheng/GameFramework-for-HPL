@@ -25,7 +25,367 @@ import random
 
 
 
+# ============ HPL 代码预编译缓存 ============
+_hpl_code_cache = {}
+
+def _compile_hpl_action(hpl_code):
+    """预编译 HPL 代码，缓存转换后的 Python 代码，提升性能"""
+    code_hash = hash(hpl_code)
+    if code_hash in _hpl_code_cache:
+        return _hpl_code_cache[code_hash]
+    
+    python_code = _convert_hpl_to_python(hpl_code)
+    compiled = compile(python_code, '<hpl_action>', 'exec')
+    _hpl_code_cache[code_hash] = compiled
+    return compiled
+
+
+# ============ 声明式动作处理器注册表 ============
+_action_handlers = {}
+
+def register_action_handler(action_type):
+
+    """装饰器：注册声明式动作处理器"""
+    def decorator(func):
+        _action_handlers[action_type] = func
+        return func
+    return decorator
+
+def _execute_declarative_action(action_def, player, game_state):
+    """执行声明式动作"""
+    action_type = action_def.get('type')
+    handler = _action_handlers.get(action_type)
+    if handler:
+        return handler(action_def, player, game_state)
+    else:
+        print(f"[警告] 未知的声明式动作类型: {action_type}")
+        return None
+
+
+# ============ 常用声明式动作处理器 ============
+
+@register_action_handler('random_event')
+def _handle_random_event(action_def, player, game_state):
+    """处理随机事件动作"""
+    import random
+    events = action_def.get('events', [])
+    
+    # 计算总概率
+    total_chance = sum(e.get('chance', 0) for e in events)
+    if total_chance == 0:
+        return
+    
+    # 随机选择事件
+    roll = random.randint(1, total_chance)
+    cumulative = 0
+    
+    for event in events:
+        cumulative += event.get('chance', 0)
+        if roll <= cumulative:
+            # 执行该事件
+            _execute_event_effects(event, player, game_state)
+            break
+
+@register_action_handler('give_item')
+def _handle_give_item(action_def, player, game_state):
+    """处理给予物品动作"""
+    item_id = action_def.get('item_id')
+    count = action_def.get('count', 1)
+    message = action_def.get('message')
+    
+    if message:
+        print(f"[系统] {message}")
+    
+    # 通过 game_state 获取物品数据
+    if hasattr(game_state, 'items') and item_id in game_state.items:
+        item_data = game_state.items[item_id]
+        for _ in range(count):
+            player.inventory.add_item(_create_item_from_data(item_data))
+        print(f"[获得] {item_data.get('name', item_id)} x{count}")
+
+@register_action_handler('give_gold')
+def _handle_give_gold(action_def, player, game_state):
+    """处理给予金币动作"""
+    amount = action_def.get('amount', 0)
+    message = action_def.get('message')
+    
+    if message:
+        print(f"[系统] {message}")
+    
+    player.inventory.add_gold(amount)
+    print(f"[获得] {amount} 金币")
+
+@register_action_handler('heal')
+def _handle_heal(action_def, player, game_state):
+    """处理治疗动作"""
+    amount = action_def.get('amount', 0)
+    message = action_def.get('message')
+    cost = action_def.get('cost', 0)
+    
+    if message:
+        print(f"[系统] {message}")
+    
+    if cost > 0:
+        if player.inventory.gold < cost:
+            print("[系统] 金币不足！")
+            return
+        player.inventory.gold -= cost
+    
+    old_hp = player.hp
+    player.heal(amount)
+    print(f"[恢复] HP: {old_hp} -> {player.hp}")
+
+@register_action_handler('damage')
+def _handle_damage(action_def, player, game_state):
+    """处理伤害动作"""
+    amount = action_def.get('amount', 0)
+    message = action_def.get('message')
+    
+    if message:
+        print(f"[系统] {message}")
+    
+    player.hp -= amount
+    if player.hp < 0:
+        player.hp = 0
+    print(f"[伤害] 失去 {amount} HP，当前 HP: {player.hp}")
+
+@register_action_handler('show_message')
+def _handle_show_message(action_def, player, game_state):
+    """处理显示消息动作"""
+    message = action_def.get('message', '')
+    msg_type = action_def.get('msg_type', 'system')  # system, dialog, combat, narration
+    
+    prefixes = {
+        'system': '[系统]',
+        'dialog': '[对话]',
+        'combat': '[战斗]',
+        'narration': '[旁白]',
+        'loot': '[获得]'
+    }
+    prefix = prefixes.get(msg_type, '[系统]')
+    print(f"{prefix} {message}")
+
+@register_action_handler('require_item')
+def _handle_require_item(action_def, player, game_state):
+    """处理物品需求检查"""
+    item_id = action_def.get('item_id')
+    success = action_def.get('success', {})
+    fail = action_def.get('fail', {})
+    
+    # 检查物品
+    has_item = any(item.id == item_id for item in player.inventory.items)
+    
+    if has_item:
+        _execute_nested_action(success, player, game_state)
+    else:
+        _execute_nested_action(fail, player, game_state)
+
+@register_action_handler('sequence')
+def _handle_sequence(action_def, player, game_state):
+    """处理顺序执行多个动作"""
+    actions = action_def.get('actions', [])
+    for action in actions:
+        _execute_nested_action(action, player, game_state)
+
+@register_action_handler('condition')
+def _handle_condition(action_def, player, game_state):
+    """处理条件分支动作"""
+    # 支持的条件类型
+    condition_type = action_def.get('condition_type')
+    condition_value = action_def.get('condition_value')
+    success = action_def.get('success', {})
+    fail = action_def.get('fail', {})
+    
+    result = False
+    
+    if condition_type == 'has_item':
+        result = any(item.id == condition_value for item in player.inventory.items)
+    elif condition_type == 'gold_at_least':
+        result = player.inventory.gold >= condition_value
+    elif condition_type == 'hp_above':
+        result = player.hp > condition_value
+    elif condition_type == 'random':
+        import random
+        result = random.randint(1, 100) <= condition_value
+    
+    if result:
+        _execute_nested_action(success, player, game_state)
+    else:
+        _execute_nested_action(fail, player, game_state)
+
+def _execute_event_effects(event_def, player, game_state):
+    """执行事件效果"""
+    # 显示消息
+    message = event_def.get('message')
+    if message:
+        print(f"[事件] {message}")
+    
+    # 给予物品
+    give_items = event_def.get('give_items', [])
+    for item_info in give_items:
+        if isinstance(item_info, dict):
+            item_id = item_info.get('id')
+            count = item_info.get('count', 1)
+        else:
+            item_id = item_info
+            count = 1
+        
+        if hasattr(game_state, 'items') and item_id in game_state.items:
+            item_data = game_state.items[item_id]
+            for _ in range(count):
+                player.inventory.add_item(_create_item_from_data(item_data))
+            print(f"[获得] {item_data.get('name', item_id)} x{count}")
+    
+    # 给予金币
+    give_gold = event_def.get('give_gold', 0)
+    if give_gold > 0:
+        player.inventory.add_gold(give_gold)
+        print(f"[获得] {give_gold} 金币")
+    
+    # 造成伤害
+    damage = event_def.get('damage', 0)
+    if damage > 0:
+        player.hp -= damage
+        if player.hp < 0:
+            player.hp = 0
+        print(f"[伤害] 失去 {damage} HP，当前 HP: {player.hp}")
+    
+    # 治疗
+    heal = event_def.get('heal', 0)
+    if heal > 0:
+        old_hp = player.hp
+        player.heal(heal)
+        print(f"[恢复] HP: {old_hp} -> {player.hp}")
+    
+    # 获得经验
+    exp = event_def.get('exp', 0)
+    if exp > 0:
+        player.gain_exp(exp)
+        print(f"[经验] 获得 {exp} 经验值")
+
+def _execute_nested_action(action_def, player, game_state):
+    """执行嵌套动作（用于 success/fail/actions 等）"""
+    if isinstance(action_def, dict):
+        action_type = action_def.get('type')
+        handler = _action_handlers.get(action_type)
+        if handler:
+            handler(action_def, player, game_state)
+    elif isinstance(action_def, str):
+        # 简单的字符串消息
+        print(f"[系统] {action_def}")
+
+def _create_item_from_data(item_data):
+    """从数据创建物品对象"""
+    try:
+        from hpl_game_framework.core import player as player_module
+        return player_module.create_item(
+            item_data.get('id', 'unknown'),
+            item_data.get('name', 'Unknown'),
+            item_data.get('description', ''),
+            item_data.get('type', 'misc'),
+            item_data.get('value', 0)
+        )
+    except ImportError:
+        # 简化版本，如果导入失败
+        class SimpleItem:
+            def __init__(self, id, name, desc, type_, value):
+                self.id = id
+                self.name = name
+                self.description = desc
+                self.type = type_
+                self.value = value
+        return SimpleItem(
+            item_data.get('id', 'unknown'),
+            item_data.get('name', 'Unknown'),
+            item_data.get('description', ''),
+            item_data.get('type', 'misc'),
+            item_data.get('value', 0)
+        )
+
+
 # ============ 内部类定义 ============
+
+def _convert_hpl_to_python(hpl_code):
+
+    """将HPL语法转换为有效的Python语法"""
+    import re
+    
+    lines = hpl_code.split('\n')
+    result_lines = []
+    
+    for line in lines:
+        original_line = line
+        # 去除行首空格用于分析
+        stripped = line.lstrip()
+        indent = line[:len(line) - len(stripped)]
+        
+        # 转换 if (condition) : -> if condition:
+        if stripped.startswith('if ('):
+            # 匹配 if (condition) : 格式
+            match = re.match(r'if\s*\((.*?)\)\s*:', stripped)
+            if match:
+                condition = match.group(1)
+                stripped = f'if {condition}:'
+                line = indent + stripped
+        
+        # 转换 elif (condition) : -> elif condition:
+        elif stripped.startswith('elif ('):
+            match = re.match(r'elif\s*\((.*?)\)\s*:', stripped)
+            if match:
+                condition = match.group(1)
+                stripped = f'elif {condition}:'
+                line = indent + stripped
+        
+        # 转换 for (var in iterable) : -> for var in iterable:
+        elif stripped.startswith('for ('):
+            match = re.match(r'for\s*\((.*?)\)\s*:', stripped)
+            if match:
+                loop_expr = match.group(1)
+                stripped = f'for {loop_expr}:'
+                line = indent + stripped
+        
+        # 转换 while (condition) : -> while condition:
+        elif stripped.startswith('while ('):
+            match = re.match(r'while\s*\((.*?)\)\s*:', stripped)
+            if match:
+                condition = match.group(1)
+                stripped = f'while {condition}:'
+                line = indent + stripped
+        
+        # 转换 catch (err) : -> except Exception as err:
+        elif stripped.startswith('catch ('):
+            match = re.match(r'catch\s*\((.*?)\)\s*:', stripped)
+            if match:
+                var_name = match.group(1)
+                stripped = f'except Exception as {var_name}:'
+                line = indent + stripped
+        
+        # 转换 try : -> try:
+        elif stripped.startswith('try :'):
+            stripped = 'try:'
+            line = indent + stripped
+        
+        # 转换 else : -> else:
+        elif stripped.startswith('else :'):
+            stripped = 'else:'
+            line = indent + stripped
+        
+        # 转换 false -> False, true -> True, null -> None
+        # 使用单词边界确保只替换完整的标识符
+        import re as re_module
+        line = re_module.sub(r'\bfalse\b', 'False', line)
+        line = re_module.sub(r'\btrue\b', 'True', line)
+        line = re_module.sub(r'\bnull\b', 'None', line)
+        
+        # 转换 || -> or, && -> and (HPL逻辑运算符转Python)
+        line = re_module.sub(r'\|\|', 'or', line)
+        line = re_module.sub(r'&&', 'and', line)
+        
+        result_lines.append(line)
+
+    
+    return '\n'.join(result_lines)
+
 
 class _Choice:
     """选择项类（内部使用）"""
@@ -44,170 +404,138 @@ class _Choice:
         return True
     
     def execute_action(self, player, game_state):
-        if self.action is not None:
-            # 处理字符串类型的动作（HPL代码块）
-            if isinstance(self.action, str):
-                # 导入执行上下文所需的模块
-                try:
-                    from hpl_game_framework.utils import interaction as ui
-                except ImportError:
-                    ui = None
+        if self.action is None:
+            return
+        
+        # 处理字典类型的声明式动作
+        if isinstance(self.action, dict):
+            _execute_declarative_action(self.action, player, game_state)
+            return
+        
+        # 处理字符串类型的动作（HPL代码块）
+        if isinstance(self.action, str):
+            # 使用预编译缓存执行HPL代码（性能优化）
+            compiled_code = _compile_hpl_action(self.action)
+
+            # 导入执行上下文所需的模块
+
+            try:
+                from hpl_game_framework.utils import interaction as ui
+            except ImportError:
+                ui = None
+            
+            # 创建模拟引擎对象，直接返回玩家对象
+            class MockEngine:
+                @staticmethod
+                def get_player(engine_id):
+                    return player
+            mock_engine = MockEngine()
+            
+            # 创建简化的玩家模块包装器
+            class PlayerModuleWrapper:
+                """简化的玩家模块包装器 - 自动代理到玩家对象"""
                 
-                # 创建模拟引擎对象，直接返回玩家对象
-
-                class MockEngine:
-                    @staticmethod
-                    def get_player(engine_id):
-                        return player
-                mock_engine = MockEngine()
+                def __init__(self, player_obj):
+                    self._player = player_obj
                 
-                # 创建玩家模块包装器，用于与玩家对象交互
-                class PlayerModuleWrapper:
-
-                    def __init__(self, player_obj):
-                        self._player = player_obj
-                    
-                    def show_player_status(self, p=None):
-                        if p is None:
-                            p = self._player
-                        return p.show_status()
-                    
-                    def get_player_hp(self, p=None):
-                        if p is None:
-                            p = self._player
-                        return p.hp
-                    
-                    def heal_player(self, p=None, amount=0):
-                        if p is None:
-                            p = self._player
-                        return p.heal(amount)
-                    
-                    def add_gold(self, p=None, amount=0):
-                        if p is None:
-                            p = self._player
-                        return p.inventory.add_gold(amount)
-                    
-                    def gain_exp(self, p=None, amount=0):
-                        if p is None:
-                            p = self._player
-                        return p.gain_exp(amount)
-                    
-                    def add_item_to_inventory(self, p=None, item=None):
-                        if p is None:
-                            p = self._player
-                        if item is not None:
-                            return p.inventory.add_item(item)
-                        return False
-                    
-                    def damage_player(self, p=None, amount=0):
-                        if p is None:
-                            p = self._player
-                        p.hp -= amount
-                        if p.hp < 0:
-                            p.hp = 0
-                        return p.hp
-                    
-                    def get_player_gold(self, p=None):
-                        if p is None:
-                            p = self._player
-                        return p.inventory.gold
-                    
-                    def get_inventory(self, p=None):
-                        if p is None:
-                            p = self._player
-                        return p.inventory.items
-                    
-                    def restore_mp(self, p=None, amount=0):
-                        if p is None:
-                            p = self._player
-                        p.mp += amount
-                        if p.mp > p.max_mp:
-                            p.mp = p.max_mp
-                        return p.mp
-                    
-                    def deduct_gold(self, p=None, amount=0):
-                        if p is None:
-                            p = self._player
-                        p.inventory.gold -= amount
-                        if p.inventory.gold < 0:
-                            p.inventory.gold = 0
-                        return p.inventory.gold
-                    
-                    def get_player_mp(self, p=None):
-                        if p is None:
-                            p = self._player
-                        return p.mp
+                def _get_player(self, p):
+                    """获取目标玩家对象"""
+                    return p if p is not None else self._player
                 
-                player_wrapper = PlayerModuleWrapper(player)
-
-                
-                # 创建物品容器，用于通过ID访问物品
-                class ItemsContainer:
-
-                    def __getattr__(self, item_id):
-                        # Import player module to create items
-                        try:
-                            from hpl_game_framework.core import player as player_module
-                        except ImportError:
-                            import player as player_module
-                        # Get item data from game_state if available
-                        if hasattr(game_state, 'items') and item_id in game_state.items:
-                            item_data = game_state.items[item_id]
-                            return player_module.create_item(
-                                item_data.get('id', item_id),
-                                item_data.get('name', 'Unknown'),
-                                item_data.get('description', ''),
-                                item_data.get('type', 'misc'),
-                                item_data.get('value', 0)
-                            )
-                        # Return a placeholder item if not found
-                        return player_module.create_item(item_id, item_id, '', 'misc', 0)
-                
-                items_container = ItemsContainer()
-                
-                # 创建包含常用变量的执行上下文
-                context = {
-
-                    'player_obj': player,
-                    'game_state': game_state,
-                    'print': print,
-                    'input': input,
-                    'len': len,
-                    'range': range,
-                    'enumerate': enumerate,
-                    'int': int,
-                    'str': str,
-                    'float': float,
-                    'bool': bool,
-                    'list': list,
-                    'dict': dict,
-                    'set': set,
-                    'tuple': tuple,
-                    'random': random,
-                    'ui': ui,
-                    'engine': mock_engine,
-                    'engine_id': 'mock_engine_id',
-                    'player': player_wrapper,
-                    'items': items_container,
-                }
-
-
-
-                try:
-                    exec(self.action, context)
-                except Exception as e:
-                    print(f"[动作执行错误] {e}")
-                return
+                def __getattr__(self, name):
+                    """动态代理到玩家对象的方法或属性"""
+                    # 处理特殊的前缀方法
+                    method_map = {
+                        'show_player_status': 'show_status',
+                        'get_player_hp': lambda p: p.hp,
+                        'heal_player': 'heal',
+                        'add_gold': lambda p, amount: p.inventory.add_gold(amount),
+                        'gain_exp': 'gain_exp',
+                        'add_item_to_inventory': lambda p, item: p.inventory.add_item(item) if item else False,
+                        'damage_player': lambda p, amount: setattr(p, 'hp', max(0, p.hp - amount)) or p.hp,
+                        'get_player_gold': lambda p: p.inventory.gold,
+                        'get_inventory': lambda p: p.inventory.items,
+                        'restore_mp': lambda p, amount: setattr(p, 'mp', min(p.max_mp, p.mp + amount)) or p.mp,
+                        'deduct_gold': lambda p, amount: setattr(p.inventory, 'gold', max(0, p.inventory.gold - amount)) or p.inventory.gold,
+                        'get_player_mp': lambda p: p.mp,
+                    }
+                    
+                    if name in method_map:
+                        mapped = method_map[name]
+                        if callable(mapped):
+                            return lambda p=None, *args, **kwargs: mapped(self._get_player(p), *args, **kwargs)
+                        else:
+                            return lambda p=None, *args, **kwargs: getattr(self._get_player(p), mapped)(*args, **kwargs)
+                    
+                    # 默认代理到玩家对象
+                    attr = getattr(self._player, name, None)
+                    if callable(attr):
+                        return lambda p=None, *args, **kwargs: getattr(self._get_player(p), name)(*args, **kwargs)
+                    return attr
+            
+            player_wrapper = PlayerModuleWrapper(player)
 
             
-            # 处理来自HPL运行时的HPLArrowFunction对象
-            if callable(self.action):
+            # 创建物品容器，用于通过ID访问物品
+            class ItemsContainer:
+                def __getattr__(self, item_id):
+                    try:
+                        from hpl_game_framework.core import player as player_module
+                    except ImportError:
+                        import player as player_module
+                    if hasattr(game_state, 'items') and item_id in game_state.items:
+                        item_data = game_state.items[item_id]
+                        return player_module.create_item(
+                            item_data.get('id', item_id),
+                            item_data.get('name', 'Unknown'),
+                            item_data.get('description', ''),
+                            item_data.get('type', 'misc'),
+                            item_data.get('value', 0)
+                        )
+                    return player_module.create_item(item_id, item_id, '', 'misc', 0)
+            
+            items_container = ItemsContainer()
+            
+            # 创建包含常用变量的执行上下文
+            context = {
+                'player_obj': player,
+                'game_state': game_state,
+                'print': print,
+                'input': input,
+                'len': len,
+                'range': range,
+                'enumerate': enumerate,
+                'int': int,
+                'str': str,
+                'float': float,
+                'bool': bool,
+                'list': list,
+                'dict': dict,
+                'set': set,
+                'tuple': tuple,
+                'random': random,
+                'ui': ui,
+                'engine': mock_engine,
+                'engine_id': 'mock_engine_id',
+                'player': player_wrapper,
+                'items': items_container,
+            }
+            
+            try:
+                exec(compiled_code, context)
+            except Exception as e:
+                print(f"[动作执行错误] {e}")
 
-                self.action(player, game_state)
-            elif hasattr(self.action, 'call') and callable(self.action.call):
-                self.action.call(player, game_state)
-            elif hasattr(self.action, 'call_function') and callable(self.action.call_function):
-                self.action.call_function(player, game_state)
+            return
+        
+        # 处理来自HPL运行时的HPLArrowFunction对象
+        if callable(self.action):
+            self.action(player, game_state)
+        elif hasattr(self.action, 'call') and callable(self.action.call):
+            self.action.call(player, game_state)
+        elif hasattr(self.action, 'call_function') and callable(self.action.call_function):
+            self.action.call_function(player, game_state)
+
 
 
     
@@ -308,6 +636,9 @@ class _Scene:
         if self.on_enter is not None:
             # 处理字符串类型的回调（HPL代码块）
             if isinstance(self.on_enter, str):
+                # 转换HPL语法为Python语法
+                python_code = _convert_hpl_to_python(self.on_enter)
+                
                 # 导入UI模块用于执行上下文
                 try:
                     from hpl_game_framework.utils import interaction as ui
@@ -322,16 +653,20 @@ class _Scene:
                     'ui': ui,
                 }
                 try:
-                    exec(self.on_enter, context)
+                    exec(python_code, context)
                 except Exception as e:
                     print(f"[on_enter执行错误] {e}")
             elif callable(self.on_enter):
                 self.on_enter(player, game_state)
+
     
     def exit(self, player, game_state):
         if self.on_exit is not None:
             # 处理字符串类型的回调（HPL代码块）
             if isinstance(self.on_exit, str):
+                # 转换HPL语法为Python语法
+                python_code = _convert_hpl_to_python(self.on_exit)
+                
                 # 导入UI模块用于执行上下文
                 try:
                     from hpl_game_framework.utils import interaction as ui
@@ -346,11 +681,12 @@ class _Scene:
                     'ui': ui,
                 }
                 try:
-                    exec(self.on_exit, context)
+                    exec(python_code, context)
                 except Exception as e:
                     print(f"[on_exit执行错误] {e}")
             elif callable(self.on_exit):
                 self.on_exit(player, game_state)
+
 
 
 class _NPC:

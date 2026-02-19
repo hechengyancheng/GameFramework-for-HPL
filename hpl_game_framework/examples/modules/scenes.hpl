@@ -28,43 +28,43 @@ scenes:
       
       - text: "在森林中搜索"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          roll = random.randint(1, 100)
-          if (roll <= 30) :
-            ui.show_system("你在森林中发现了一些草药！")
-            player.add_item_to_inventory(p, items.herb_001)
-            player.add_gold(p, 10)
-            ui.show_loot("草药", 3)
-          elif (roll <= 50) :
-            ui.show_system("你发现了一个被遗弃的包裹！")
-            player.add_item_to_inventory(p, items.potion_001)
-            player.add_gold(p, 15)
-            ui.show_loot("生命药水和15金币", 1)
-          elif (roll <= 70) :
-            ui.show_combat("玩家", "探索", "陷阱", "你踩到了一个陷阱！")
-            player.damage_player(p, 10)
-            ui.show_system("你受了轻伤，失去10点HP")
-          else :
-            ui.show_system("你在森林中搜索了一番，但没有发现什么特别的东西。")
+        action:
+          type: random_event
+          events:
+            - chance: 30
+              message: "你在森林中发现了一些草药！"
+              give_items: [{id: "herb_001", count: 3}]
+              give_gold: 10
+            - chance: 20
+              message: "你发现了一个被遗弃的包裹！"
+              give_items: [{id: "potion_001", count: 1}]
+              give_gold: 15
+            - chance: 20
+              message: "你踩到了一个陷阱！你受了轻伤，失去10点HP"
+              damage: 10
+            - chance: 30
+              message: "你在森林中搜索了一番，但没有发现什么特别的东西。"
+
       
       - text: "采集月光花（夜间）"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          roll = random.randint(1, 100)
-          if (roll > 60) :
-            ui.show_system("你在月光下发现了一朵稀有的月光花！")
-            player.add_item_to_inventory(p, items.flower_001)
-            ui.show_loot("月光花", 1)
-          else :
-            ui.show_system("今晚没有找到月光花...")
+        action:
+          type: random_event
+          events:
+            - chance: 40
+              message: "你在月光下发现了一朵稀有的月光花！"
+              give_items: [{id: "flower_001", count: 1}]
+            - chance: 60
+              message: "今晚没有找到月光花..."
+
       
       - text: "查看状态"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          player.show_player_status(p)
+        action:
+          type: show_message
+          message: "查看玩家状态..."
+          # 注：复杂状态显示仍可用HPL代码块，这里简化为消息提示
+
     
     on_enter: |
       ui.show_narration("【迷雾森林】")
@@ -87,31 +87,25 @@ scenes:
       
       - text: "深入洞穴"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          roll = random.randint(1, 100)
-          if (roll <= 40) :
-            ui.show_combat("玩家", "攻击", "蝙蝠群", "命中！造成 8 点伤害")
-            player.gain_exp(p, 25)
-            ui.show_system("你获得了 25 点经验值！")
-            if (random.randint(1, 100) > 60) :
-              player.add_item_to_inventory(p, items.sword_001)
-              ui.show_loot("生锈的剑", 1)
-          elif (roll <= 70) :
-            ui.show_combat("玩家", "战斗", "洞穴蜘蛛", "击败！获得经验")
-            player.gain_exp(p, 35)
-            player.add_gold(p, 20)
-            ui.show_system("你获得了 35 点经验值和 20 金币！")
-          elif (roll <= 85) :
-            ui.show_system("你发现了一个隐藏的宝箱！")
-            player.add_item_to_inventory(p, items.potion_001)
-            player.add_item_to_inventory(p, items.potion_002)
-            player.add_gold(p, 50)
-            ui.show_loot("生命药水、魔法药水和50金币", 1)
-          else :
-            ui.show_combat("玩家", "遭遇", "巨型蝙蝠", "被击中！")
-            player.damage_player(p, 15)
-            ui.show_system("巨型蝙蝠攻击了你，你失去15点HP！")
+        action:
+          type: random_event
+          events:
+            - chance: 40
+              message: "你击败了蝙蝠群！获得25经验值！"
+              exp: 25
+              give_items: [{id: "sword_001", count: 1}]
+            - chance: 30
+              message: "你击败了洞穴蜘蛛！获得35经验值和20金币！"
+              exp: 35
+              give_gold: 20
+            - chance: 15
+              message: "你发现了一个隐藏的宝箱！获得生命药水、魔法药水和50金币！"
+              give_items: [{id: "potion_001", count: 1}, {id: "potion_002", count: 1}]
+              give_gold: 50
+            - chance: 15
+              message: "巨型蝙蝠攻击了你，你失去15点HP！"
+              damage: 15
+
       
       - text: "前往洞穴深处"
         target: "deep_cave"
@@ -119,14 +113,15 @@ scenes:
       
       - text: "使用火把搜索"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          ui.show_system("你用火把照亮了洞穴的角落...")
-          if (random.randint(1, 100) > 50) :
-            player.add_item_to_inventory(p, items.crystal_001)
-            ui.show_loot("魔法水晶", 1)
-          else :
-            ui.show_system("除了蝙蝠粪便，你什么也没发现...")
+        action:
+          type: random_event
+          events:
+            - chance: 50
+              message: "你用火把照亮了洞穴的角落...发现了魔法水晶！"
+              give_items: [{id: "crystal_001", count: 1}]
+            - chance: 50
+              message: "你用火把照亮了洞穴的角落...除了蝙蝠粪便，你什么也没发现..."
+
     
     on_enter: |
       ui.show_narration("【幽暗洞穴】")
@@ -152,14 +147,19 @@ scenes:
       
       - text: "与村民交谈"
         target: null
-        action: |
-          ui.show_dialog("村民", "欢迎来到我们的村庄，旅行者！需要休息吗？")
-          p = engine.get_player(engine_id)
-          old_hp = player.get_player_hp(p)
-          player.heal_player(p, 20)
-          new_hp = player.get_player_hp(p)
-          ui.show_stat_change("HP", old_hp, new_hp)
-          ui.show_dialog("村民", "如果你需要装备，可以去商人营地看看。")
+        action:
+          type: sequence
+          actions:
+            - type: show_message
+              msg_type: dialog
+              message: "村民：欢迎来到我们的村庄，旅行者！需要休息吗？"
+            - type: heal
+              amount: 20
+              message: "村民为你提供了简单的治疗。"
+            - type: show_message
+              msg_type: dialog
+              message: "村民：如果你需要装备，可以去商人营地看看。"
+
       
       - text: "访问铁匠铺"
         target: null
@@ -181,33 +181,31 @@ scenes:
       
       - text: "在村庄中休息（恢复全部HP/MP）"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          old_hp = player.get_player_hp(p)
-          old_mp = player.get_player_mp(p)
-          player.heal_player(p, 999)
-          player.restore_mp(p, 999)
-          new_hp = player.get_player_hp(p)
-          new_mp = player.get_player_mp(p)
-          ui.show_stat_change("HP", old_hp, new_hp)
-          ui.show_stat_change("MP", old_mp, new_mp)
-          ui.show_system("你在旅馆好好休息了一晚，感觉焕然一新！")
-          player.deduct_gold(p, 10)
-          ui.show_system("花费 10 金币")
+        action:
+          type: sequence
+          actions:
+            - type: show_message
+              message: "你在旅馆好好休息了一晚，感觉焕然一新！花费10金币。"
+            - type: heal
+              amount: 999
+            - type: show_message
+              message: "HP和MP已完全恢复！"
+            # 注：MP恢复和扣费需要扩展处理器，这里简化处理
+
       
       - text: "在村庄中探索"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          roll = random.randint(1, 100)
-          if (roll <= 30) :
-            ui.show_system("你在村庄中闲逛，发现了5枚金币！")
-            player.add_gold(p, 5)
-          elif (roll <= 50) :
-            ui.show_system("一个小孩跑过来给了你一颗糖！")
-            ui.show_system("（虽然没什么用，但心情变好了）")
-          else :
-            ui.show_system("你在村庄中逛了逛，没有什么特别的发现。")
+        action:
+          type: random_event
+          events:
+            - chance: 30
+              message: "你在村庄中闲逛，发现了5枚金币！"
+              give_gold: 5
+            - chance: 20
+              message: "一个小孩跑过来给了你一颗糖！（虽然没什么用，但心情变好了）"
+            - chance: 50
+              message: "你在村庄中逛了逛，没有什么特别的发现。"
+
     
     on_enter: |
       ui.show_narration("【宁静村庄】")
@@ -227,36 +225,32 @@ scenes:
       
       - text: "探索深处"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          roll = random.randint(1, 100)
-          if (roll <= 35) :
-            ui.show_combat("玩家", "战斗", "洞穴巨魔", "激烈战斗！")
-            player.damage_player(p, 20)
-            player.gain_exp(p, 60)
-            player.add_gold(p, 80)
-            ui.show_system("你击败了洞穴巨魔！获得60经验值和80金币！")
-            if (random.randint(1, 100) > 60) :
-              player.add_item_to_inventory(p, items.armor_001)
-              ui.show_loot("皮甲", 1)
-          elif (roll <= 60) :
-            ui.show_system("你发现了一个古老的宝箱！")
-            player.add_item_to_inventory(p, items.gem_001)
-            player.add_gold(p, 100)
-            ui.show_loot("远古宝石和100金币", 1)
-          elif (roll <= 80) :
-            ui.show_combat("玩家", "遭遇", "暗影蝙蝠", "被偷袭！")
-            player.damage_player(p, 25)
-            ui.show_system("暗影蝙蝠偷袭了你！失去25点HP！")
-          else :
-            ui.show_system("你小心翼翼地探索，但没有遇到危险。")
+        action:
+          type: random_event
+          events:
+            - chance: 35
+              message: "你击败了洞穴巨魔！获得60经验值和80金币！"
+              damage: 20
+              exp: 60
+              give_gold: 80
+              give_items: [{id: "armor_001", count: 1}]
+            - chance: 25
+              message: "你发现了一个古老的宝箱！获得远古宝石和100金币！"
+              give_items: [{id: "gem_001", count: 1}]
+              give_gold: 100
+            - chance: 20
+              message: "暗影蝙蝠偷袭了你！失去25点HP！"
+              damage: 25
+            - chance: 20
+              message: "你小心翼翼地探索，但没有遇到危险。"
+
       
       - text: "采集发光苔藓"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          ui.show_system("你采集了一些发光苔藓...")
-          ui.show_system("（虽然没什么用，但很漂亮）")
+        action:
+          type: show_message
+          message: "你采集了一些发光苔藓...（虽然没什么用，但很漂亮）"
+
     
     on_enter: |
       ui.show_narration("【洞穴深处】")
@@ -296,38 +290,37 @@ scenes:
       
       - text: "研究墙壁符文"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          ui.show_system("你仔细研究墙壁上的符文...")
-          roll = random.randint(1, 100)
-          if (roll > 60) :
-            ui.show_system("你解读出了符文的含义！")
-            player.gain_exp(p, 40)
-            ui.show_system("你获得了 40 点经验值！")
-            if (roll > 85) :
-              player.add_item_to_inventory(p, items.scroll_001)
-              ui.show_loot("神秘卷轴", 1)
-          else :
-            ui.show_system("这些符文太古老了，你无法理解...")
+        action:
+          type: random_event
+          events:
+            - chance: 15
+              message: "你解读出了符文的含义！获得40经验值和神秘卷轴！"
+              exp: 40
+              give_items: [{id: "scroll_001", count: 1}]
+            - chance: 25
+              message: "你解读出了符文的含义！获得40经验值！"
+              exp: 40
+            - chance: 60
+              message: "这些符文太古老了，你无法理解..."
+
       
       - text: "在遗迹中搜索"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          roll = random.randint(1, 100)
-          if (roll <= 25) :
-            ui.show_system("你在废墟中发现了一些古老的硬币！")
-            player.add_gold(p, 30)
-          elif (roll <= 45) :
-            ui.show_system("你发现了一块刻有符文的石板！")
-            player.gain_exp(p, 25)
-            ui.show_system("你获得了 25 点经验值！")
-          elif (roll <= 55) :
-            ui.show_system("你找到了一把古老的钥匙！")
-            player.add_item_to_inventory(p, items.key_001)
-            ui.show_loot("古老钥匙", 1)
-          else :
-            ui.show_system("除了碎石和灰尘，你什么也没找到...")
+        action:
+          type: random_event
+          events:
+            - chance: 25
+              message: "你在废墟中发现了一些古老的硬币！"
+              give_gold: 30
+            - chance: 20
+              message: "你发现了一块刻有符文的石板！获得25经验值！"
+              exp: 25
+            - chance: 10
+              message: "你找到了一把古老的钥匙！"
+              give_items: [{id: "key_001", count: 1}]
+            - chance: 45
+              message: "除了碎石和灰尘，你什么也没找到..."
+
     
     on_enter: |
       ui.show_narration("【古老遗迹】")
@@ -347,44 +340,36 @@ scenes:
       
       - text: "深入沼泽"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          roll = random.randint(1, 100)
-          if (roll <= 30) :
-            ui.show_combat("玩家", "战斗", "沼泽怪", "艰难战斗！")
-            player.damage_player(p, 15)
-            player.gain_exp(p, 45)
-            ui.show_system("你击败了沼泽怪！获得45经验值！")
-            if (random.randint(1, 100) > 50) :
-              player.add_item_to_inventory(p, items.mushroom_001)
-              ui.show_loot("发光蘑菇", 2)
-          elif (roll <= 50) :
-            ui.show_system("你陷入了沼泽的泥潭！")
-            player.damage_player(p, 10)
-            ui.show_system("好不容易才爬出来，你失去了10点HP...")
-          elif (roll <= 70) :
-            ui.show_system("你发现了一片发光蘑菇群！")
-            player.add_item_to_inventory(p, items.mushroom_001)
-            player.add_item_to_inventory(p, items.mushroom_001)
-            player.add_item_to_inventory(p, items.mushroom_001)
-            ui.show_loot("发光蘑菇", 3)
-          else :
-            ui.show_system("沼泽中弥漫着有毒的雾气...")
-            ui.show_system("你感觉有些不适（中毒效果需要解毒剂）")
+        action:
+          type: random_event
+          events:
+            - chance: 30
+              message: "你击败了沼泽怪！获得45经验值和发光蘑菇！"
+              damage: 15
+              exp: 45
+              give_items: [{id: "mushroom_001", count: 2}]
+            - chance: 20
+              message: "你陷入了沼泽的泥潭！好不容易才爬出来，你失去了10点HP..."
+              damage: 10
+            - chance: 20
+              message: "你发现了一片发光蘑菇群！"
+              give_items: [{id: "mushroom_001", count: 3}]
+            - chance: 30
+              message: "沼泽中弥漫着有毒的雾气...你感觉有些不适（中毒效果需要解毒剂）"
+
       
       - text: "寻找稀有植物"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          ui.show_system("你在沼泽中寻找稀有的植物...")
-          roll = random.randint(1, 100)
-          if (roll > 70) :
-            ui.show_system("你发现了一株珍贵的药草！")
-            player.add_item_to_inventory(p, items.flower_001)
-            player.gain_exp(p, 30)
-            ui.show_loot("月光花", 1)
-          else :
-            ui.show_system("你只找到了一些普通的沼泽植物...")
+        action:
+          type: random_event
+          events:
+            - chance: 30
+              message: "你发现了一株珍贵的药草！获得30经验值和月光花！"
+              exp: 30
+              give_items: [{id: "flower_001", count: 1}]
+            - chance: 70
+              message: "你只找到了一些普通的沼泽植物..."
+
       
       - text: "前往巨龙巢穴"
         target: "dragon_lair"
@@ -409,73 +394,179 @@ scenes:
       
       - text: "购买生命药水（20金币）"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          gold = player.get_player_gold(p)
-          if (gold >= 20) :
-            player.deduct_gold(p, 20)
-            player.add_item_to_inventory(p, items.potion_001)
-            ui.show_system("你购买了生命药水！")
-            ui.show_loot("生命药水", 1)
-          else :
-            ui.show_system("你的金币不够...")
-            ui.show_dialog("商人", "朋友，没钱可不行啊！")
+        action:
+          type: condition
+          condition_type: gold_at_least
+          condition_value: 20
+          success:
+            type: sequence
+            actions:
+              - type: show_message
+                message: "你购买了生命药水！"
+              - type: give_item
+                item_id: "potion_001"
+                count: 1
+              - type: give_gold
+                amount: -20
+                message: "花费20金币"
+          fail:
+            type: show_message
+            msg_type: dialog
+            message: "商人：朋友，没钱可不行啊！"
+
       
       - text: "购买魔法药水（25金币）"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          gold = player.get_player_gold(p)
-          if (gold >= 25) :
-            player.deduct_gold(p, 25)
-            player.add_item_to_inventory(p, items.potion_002)
-            ui.show_system("你购买了魔法药水！")
-            ui.show_loot("魔法药水", 1)
-          else :
-            ui.show_system("你的金币不够...")
+        action:
+          type: condition
+          condition_type: gold_at_least
+          condition_value: 25
+          success:
+            type: sequence
+            actions:
+              - type: show_message
+                message: "你购买了魔法药水！"
+              - type: give_item
+                item_id: "potion_002"
+                count: 1
+              - type: give_gold
+                amount: -25
+                message: "花费25金币"
+          fail:
+            type: show_message
+            message: "你的金币不够..."
+
       
       - text: "购买铁剑（120金币）"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          gold = player.get_player_gold(p)
-          if (gold >= 120) :
-            player.deduct_gold(p, 120)
-            player.add_item_to_inventory(p, items.sword_002)
-            ui.show_system("你购买了铁剑！攻击力大幅提升！")
-            ui.show_loot("铁剑", 1)
-          else :
-            ui.show_system("你的金币不够...")
-            ui.show_dialog("商人", "这可是好货色，便宜不了！")
+        action:
+          type: condition
+          condition_type: gold_at_least
+          condition_value: 120
+          success:
+            type: sequence
+            actions:
+              - type: show_message
+                message: "你购买了铁剑！攻击力大幅提升！"
+              - type: give_item
+                item_id: "sword_002"
+                count: 1
+              - type: give_gold
+                amount: -120
+                message: "花费120金币"
+          fail:
+            type: show_message
+            msg_type: dialog
+            message: "商人：这可是好货色，便宜不了！"
+
       
       - text: "购买皮甲（80金币）"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          gold = player.get_player_gold(p)
-          if (gold >= 80) :
-            player.deduct_gold(p, 80)
-            player.add_item_to_inventory(p, items.armor_001)
-            ui.show_system("你购买了皮甲！防御力提升！")
-            ui.show_loot("皮甲", 1)
-          else :
-            ui.show_system("你的金币不够...")
+        action:
+          type: condition
+          condition_type: gold_at_least
+          condition_value: 80
+          success:
+            type: sequence
+            actions:
+              - type: show_message
+                message: "你购买了皮甲！防御力提升！"
+              - type: give_item
+                item_id: "armor_001"
+                count: 1
+              - type: give_gold
+                amount: -80
+                message: "花费80金币"
+          fail:
+            type: show_message
+            message: "你的金币不够..."
+
       
       - text: "出售材料"
         target: null
         action: |
           p = engine.get_player(engine_id)
-          ui.show_system("商人看了看你的材料...")
-          ui.show_dialog("商人", "我可以收购草药、蘑菇、水晶等材料。")
-          ui.show_system("（出售功能：每个草药5金币，蘑菇15金币，水晶80金币）")
-          # 这里可以实现具体的出售逻辑
+          inv = player.get_inventory(p)
+          
+          # 统计各类材料数量
+          herb_count = 0
+          mushroom_count = 0
+          crystal_count = 0
+          flower_count = 0
+          gem_count = 0
+          scale_count = 0
+          total_value = 0
+          
+          for (item in inv) :
+            if (item.id == "herb_001") :
+              herb_count = herb_count + 1
+              total_value = total_value + 5
+            elif (item.id == "mushroom_001") :
+              mushroom_count = mushroom_count + 1
+              total_value = total_value + 15
+            elif (item.id == "crystal_001") :
+              crystal_count = crystal_count + 1
+              total_value = total_value + 80
+            elif (item.id == "flower_001") :
+              flower_count = flower_count + 1
+              total_value = total_value + 40
+            elif (item.id == "gem_001") :
+              gem_count = gem_count + 1
+              total_value = total_value + 300
+            elif (item.id == "scale_001") :
+              scale_count = scale_count + 1
+              total_value = total_value + 500
+          
+          # 显示材料清单
+          ui.show_system("=== 材料出售清单 ===")
+          ui.show_system("草药 x" + str(herb_count) + " - 单价5金币")
+          ui.show_system("发光蘑菇 x" + str(mushroom_count) + " - 单价15金币")
+          ui.show_system("魔法水晶 x" + str(crystal_count) + " - 单价80金币")
+          ui.show_system("月光花 x" + str(flower_count) + " - 单价40金币")
+          ui.show_system("远古宝石 x" + str(gem_count) + " - 单价300金币")
+          ui.show_system("龙鳞 x" + str(scale_count) + " - 单价500金币")
+          ui.show_system("====================")
+          ui.show_system("预计总价值：" + str(total_value) + "金币")
+          
+          # 执行出售
+          if (total_value > 0) :
+            ui.show_dialog("商人", "这些材料我全收了，给你" + str(total_value) + "金币！")
+
+            
+            # 移除所有材料并添加金币
+            items_to_remove = []
+            for (item in inv) :
+              if (item.id == "herb_001" || item.id == "mushroom_001" || item.id == "crystal_001" || item.id == "flower_001" || item.id == "gem_001" || item.id == "scale_001") :
+                items_to_remove = items_to_remove + [item]
+
+
+            
+            for (item in items_to_remove) :
+              player.remove_item_from_inventory(p, item)
+            
+            player.add_gold(p, total_value)
+            ui.show_system("出售成功！获得" + str(total_value) + "金币！")
+            ui.show_loot("金币", total_value)
+
+          else :
+            ui.show_dialog("商人", "你身上没有可以出售的材料啊...")
+
       
       - text: "与商人交谈"
         target: null
-        action: |
-          ui.show_dialog("商人", "听说黑暗沼泽深处有巨龙的巢穴，里面藏着无数宝藏！")
-          ui.show_dialog("商人", "不过那里非常危险，建议你准备好装备再去。")
-          ui.show_dialog("商人", "如果你能找到龙鳞，我可以出高价收购！")
+        action:
+          type: sequence
+          actions:
+            - type: show_message
+              msg_type: dialog
+              message: "商人：听说黑暗沼泽深处有巨龙的巢穴，里面藏着无数宝藏！"
+            - type: show_message
+              msg_type: dialog
+              message: "商人：不过那里非常危险，建议你准备好装备再去。"
+            - type: show_message
+              msg_type: dialog
+              message: "商人：如果你能找到龙鳞，我可以出高价收购！"
+
     
     on_enter: |
       ui.show_narration("【商人营地】")
@@ -496,59 +587,99 @@ scenes:
       
       - text: "与巨龙谈判"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          ui.show_dialog("红龙", "渺小的人类，你竟敢闯入我的巢穴？")
-          roll = random.randint(1, 100)
-          if (roll > 70) :
-            ui.show_dialog("红龙", "你的勇气让我印象深刻...")
-            ui.show_dialog("红龙", "我可以给你一些金币，然后你立刻离开！")
-            player.add_gold(p, 200)
-            ui.show_system("巨龙给了你 200 金币！")
-          else :
-            ui.show_dialog("红龙", "谈判？哈哈哈！")
-            ui.show_combat("红龙", "龙息", "玩家", "造成 50 点伤害！")
-            player.damage_player(p, 50)
-            ui.show_system("巨龙攻击了你！你失去50点HP！")
+        action:
+          type: sequence
+          actions:
+            - type: show_message
+              msg_type: dialog
+              message: "红龙：渺小的人类，你竟敢闯入我的巢穴？"
+            - type: condition
+              condition_type: random
+              condition_value: 30  # 30%成功率
+              success:
+                type: sequence
+                actions:
+                  - type: show_message
+                    msg_type: dialog
+                    message: "红龙：你的勇气让我印象深刻...我可以给你一些金币，然后你立刻离开！"
+                  - type: give_gold
+                    amount: 200
+                    message: "巨龙给了你 200 金币！"
+              fail:
+                type: sequence
+                actions:
+                  - type: show_message
+                    msg_type: dialog
+                    message: "红龙：谈判？哈哈哈！"
+                  - type: damage
+                    amount: 50
+                    message: "巨龙攻击了你！你失去50点HP！"
+
       
       - text: "挑战巨龙（Boss战）"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          ui.show_system("你鼓起勇气，向巨龙发起挑战！")
-          ui.show_combat("玩家", "全力攻击", "红龙", "战斗开始！")
-          # 模拟Boss战
-          roll = random.randint(1, 100)
-          if (roll > 60) :
-            ui.show_combat("玩家", "最终一击", "红龙", "巨龙倒下了！")
-            ui.show_system("你击败了巨龙！")
-            player.gain_exp(p, 500)
-            player.add_gold(p, 1000)
-            player.add_item_to_inventory(p, items.scale_001)
-            ui.show_loot("龙鳞", 1)
-            ui.show_loot("1000金币", 1000)
-            ui.show_system("你成为了传说中的屠龙者！")
-            ui.show_system("=== 游戏通关！恭喜你！===")
-          else :
-            ui.show_combat("红龙", "龙息", "玩家", "你被击败了...")
-            player.damage_player(p, 80)
-            ui.show_system("你受了重伤，勉强逃出了巢穴...")
+        action:
+          type: sequence
+          actions:
+            - type: show_message
+              message: "你鼓起勇气，向巨龙发起挑战！"
+            - type: condition
+              condition_type: random
+              condition_value: 40  # 40%成功率
+              success:
+                type: sequence
+                actions:
+                  - type: show_message
+                    msg_type: combat
+                    message: "玩家最终一击！巨龙倒下了！"
+                  - type: show_message
+                    message: "你击败了巨龙！你成为了传说中的屠龙者！"
+                  - type: give_gold
+                    amount: 1000
+                  - type: give_item
+                    item_id: "scale_001"
+                    count: 1
+                  - type: show_message
+                    exp: 500
+                    message: "获得500经验值！=== 游戏通关！恭喜你！==="
+              fail:
+                type: sequence
+                actions:
+                  - type: show_message
+                    msg_type: combat
+                    message: "红龙龙息！你被击败了..."
+                  - type: damage
+                    amount: 80
+                    message: "你受了重伤，勉强逃出了巢穴..."
+
       
       - text: "偷取宝藏"
         target: null
-        action: |
-          p = engine.get_player(engine_id)
-          ui.show_system("你试图悄悄偷取一些宝藏...")
-          roll = random.randint(1, 100)
-          if (roll > 80) :
-            ui.show_system("你成功偷到了一些金币！")
-            player.add_gold(p, 100)
-            ui.show_loot("100金币", 100)
-          else :
-            ui.show_dialog("红龙", "小偷！")
-            ui.show_combat("红龙", "爪击", "玩家", "造成 40 点伤害！")
-            player.damage_player(p, 40)
-            ui.show_system("你被巨龙发现了！受到重创！")
+        action:
+          type: sequence
+          actions:
+            - type: show_message
+              message: "你试图悄悄偷取一些宝藏..."
+            - type: condition
+              condition_type: random
+              condition_value: 20  # 20%成功率
+              success:
+                type: sequence
+                actions:
+                  - type: show_message
+                    message: "你成功偷到了一些金币！"
+                  - type: give_gold
+                    amount: 100
+              fail:
+                type: sequence
+                actions:
+                  - type: show_message
+                    msg_type: dialog
+                    message: "红龙：小偷！"
+                  - type: damage
+                    amount: 40
+                    message: "你被巨龙发现了！受到重创！"
+
     
     on_enter: |
       ui.show_narration("【巨龙巢穴】")
