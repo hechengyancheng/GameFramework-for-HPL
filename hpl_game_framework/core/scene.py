@@ -25,10 +25,26 @@ import random
 
 
 
+# ============ HPL 代码预编译缓存 ============
+_hpl_code_cache = {}
+
+def _compile_hpl_action(hpl_code):
+    """预编译 HPL 代码，缓存转换后的 Python 代码，提升性能"""
+    code_hash = hash(hpl_code)
+    if code_hash in _hpl_code_cache:
+        return _hpl_code_cache[code_hash]
+    
+    python_code = _convert_hpl_to_python(hpl_code)
+    compiled = compile(python_code, '<hpl_action>', 'exec')
+    _hpl_code_cache[code_hash] = compiled
+    return compiled
+
+
 # ============ 声明式动作处理器注册表 ============
 _action_handlers = {}
 
 def register_action_handler(action_type):
+
     """装饰器：注册声明式动作处理器"""
     def decorator(func):
         _action_handlers[action_type] = func
@@ -398,10 +414,11 @@ class _Choice:
         
         # 处理字符串类型的动作（HPL代码块）
         if isinstance(self.action, str):
-            # 转换HPL语法为Python语法
-            python_code = _convert_hpl_to_python(self.action)
+            # 使用预编译缓存执行HPL代码（性能优化）
+            compiled_code = _compile_hpl_action(self.action)
 
             # 导入执行上下文所需的模块
+
             try:
                 from hpl_game_framework.utils import interaction as ui
             except ImportError:
@@ -414,83 +431,50 @@ class _Choice:
                     return player
             mock_engine = MockEngine()
             
-            # 创建玩家模块包装器，用于与玩家对象交互
+            # 创建简化的玩家模块包装器
             class PlayerModuleWrapper:
+                """简化的玩家模块包装器 - 自动代理到玩家对象"""
+                
                 def __init__(self, player_obj):
                     self._player = player_obj
                 
-                def show_player_status(self, p=None):
-                    if p is None:
-                        p = self._player
-                    return p.show_status()
+                def _get_player(self, p):
+                    """获取目标玩家对象"""
+                    return p if p is not None else self._player
                 
-                def get_player_hp(self, p=None):
-                    if p is None:
-                        p = self._player
-                    return p.hp
-                
-                def heal_player(self, p=None, amount=0):
-                    if p is None:
-                        p = self._player
-                    return p.heal(amount)
-                
-                def add_gold(self, p=None, amount=0):
-                    if p is None:
-                        p = self._player
-                    return p.inventory.add_gold(amount)
-                
-                def gain_exp(self, p=None, amount=0):
-                    if p is None:
-                        p = self._player
-                    return p.gain_exp(amount)
-                
-                def add_item_to_inventory(self, p=None, item=None):
-                    if p is None:
-                        p = self._player
-                    if item is not None:
-                        return p.inventory.add_item(item)
-                    return False
-                
-                def damage_player(self, p=None, amount=0):
-                    if p is None:
-                        p = self._player
-                    p.hp -= amount
-                    if p.hp < 0:
-                        p.hp = 0
-                    return p.hp
-                
-                def get_player_gold(self, p=None):
-                    if p is None:
-                        p = self._player
-                    return p.inventory.gold
-                
-                def get_inventory(self, p=None):
-                    if p is None:
-                        p = self._player
-                    return p.inventory.items
-                
-                def restore_mp(self, p=None, amount=0):
-                    if p is None:
-                        p = self._player
-                    p.mp += amount
-                    if p.mp > p.max_mp:
-                        p.mp = p.max_mp
-                    return p.mp
-                
-                def deduct_gold(self, p=None, amount=0):
-                    if p is None:
-                        p = self._player
-                    p.inventory.gold -= amount
-                    if p.inventory.gold < 0:
-                        p.inventory.gold = 0
-                    return p.inventory.gold
-                
-                def get_player_mp(self, p=None):
-                    if p is None:
-                        p = self._player
-                    return p.mp
+                def __getattr__(self, name):
+                    """动态代理到玩家对象的方法或属性"""
+                    # 处理特殊的前缀方法
+                    method_map = {
+                        'show_player_status': 'show_status',
+                        'get_player_hp': lambda p: p.hp,
+                        'heal_player': 'heal',
+                        'add_gold': lambda p, amount: p.inventory.add_gold(amount),
+                        'gain_exp': 'gain_exp',
+                        'add_item_to_inventory': lambda p, item: p.inventory.add_item(item) if item else False,
+                        'damage_player': lambda p, amount: setattr(p, 'hp', max(0, p.hp - amount)) or p.hp,
+                        'get_player_gold': lambda p: p.inventory.gold,
+                        'get_inventory': lambda p: p.inventory.items,
+                        'restore_mp': lambda p, amount: setattr(p, 'mp', min(p.max_mp, p.mp + amount)) or p.mp,
+                        'deduct_gold': lambda p, amount: setattr(p.inventory, 'gold', max(0, p.inventory.gold - amount)) or p.inventory.gold,
+                        'get_player_mp': lambda p: p.mp,
+                    }
+                    
+                    if name in method_map:
+                        mapped = method_map[name]
+                        if callable(mapped):
+                            return lambda p=None, *args, **kwargs: mapped(self._get_player(p), *args, **kwargs)
+                        else:
+                            return lambda p=None, *args, **kwargs: getattr(self._get_player(p), mapped)(*args, **kwargs)
+                    
+                    # 默认代理到玩家对象
+                    attr = getattr(self._player, name, None)
+                    if callable(attr):
+                        return lambda p=None, *args, **kwargs: getattr(self._get_player(p), name)(*args, **kwargs)
+                    return attr
             
             player_wrapper = PlayerModuleWrapper(player)
+
             
             # 创建物品容器，用于通过ID访问物品
             class ItemsContainer:
@@ -538,9 +522,10 @@ class _Choice:
             }
             
             try:
-                exec(python_code, context)
+                exec(compiled_code, context)
             except Exception as e:
                 print(f"[动作执行错误] {e}")
+
             return
         
         # 处理来自HPL运行时的HPLArrowFunction对象
